@@ -32,6 +32,8 @@ class WorkerTimeBarControl(QObject):
             self.progress.emit(i)
         self.finished.emit() #à definir: função a ser chamada após o fim do tempo -> inicioDoJogo ou Restart
 
+class WorkerControleGeral(QObject):
+    finished = pyqtSignal()
 
 
 class myBtn(QPushButton):
@@ -42,7 +44,20 @@ class myBtn(QPushButton):
     def test(self):
         print('myBtn')
 
+
 class TelaInicialLayout(QVBoxLayout):
+    def __init__(self, start_controlador_geral):
+        super().__init__()
+        #
+        self.bloco1 = QVBoxLayout()
+        self.start_button = QPushButton('Começar')
+        self.start_button.clicked.connect(start_controlador_geral)
+        self.bloco1.addWidget(self.start_button)
+        self.addLayout(self.bloco1)
+
+
+
+class TelaConexaoLayout(QVBoxLayout):
     def __init__(self):
         super().__init__()
         #Bloco 1
@@ -126,9 +141,10 @@ class Tela(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Trivia Game !")
-        self.tela_incial_index = 0
-        self.tela_jogo_index = 1
-        self.tela_mestre_index = 2
+        self.tela_inicial_index = 0
+        self.tela_conexao_index = 1
+        self.tela_jogo_index = 2
+        self.tela_mestre_index = 3
         #enqudramento janela
         self.left = 20
         self.top = 80
@@ -147,24 +163,27 @@ class Tela(QWidget):
         self.stackedLayout = QStackedLayout()
         self.setLayout(self.stackedLayout)
         # Create the first page
-        self.tela_inicial = QWidget()
-        self.tela_inicial_layout = TelaInicialLayout()
-        self.tela_inicial.setLayout(self.tela_inicial_layout)
+        self.tela_conexao = QWidget()
+        self.tela_conexao_layout = TelaConexaoLayout()
+        self.tela_conexao.setLayout(self.tela_conexao_layout)
 
         
 
 
         # Create the second page
-        self.page2 = QWidget()
-        self.page2Layout = QFormLayout()
-        btn1 = QPushButton('Trocar')
-        btn1.clicked.connect(lambda: self.switchPage(self.home_page_index))
-        self.page2Layout.addRow("Job:", QLineEdit())
-        self.page2Layout.addRow("Department:", QLineEdit())
-        self.page2.setLayout(self.page2Layout)
+        self.tela_inicial = QWidget()
+        self.tela_inicial_layout = TelaInicialLayout(self.startControladorGeral)
+        self.tela_inicial.setLayout(self.tela_inicial_layout)
         #self.stackedLayout.addWidget(self.page2)
         # Add tela in the stacked layout
         self.stackedLayout.addWidget(self.tela_inicial)
+        self.stackedLayout.addWidget(self.tela_conexao)
+        
+    
+    def startControladorGeral(self):
+        print("[start controlador geral]")
+        #startar controlador geral
+        self.switchPage(self.tela_conexao_index)
 
     def switchPage(self, page_index):
         self.stackedLayout.setCurrentIndex(page_index)
