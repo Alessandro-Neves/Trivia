@@ -22,10 +22,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 #classe para gerenciar threads em paralelo à thread principal -> (QAplication.exec)
 class WorkerTimeBarControl(QObject):
-    def __init__(self):
-        super().__init__()
-        self.finished = pyqtSignal()
-        self.progress = pyqtSignal(int)
+    finished = pyqtSignal()
+    progress = pyqtSignal(int)
 
     def run(self):
         print("\t[WorkerTimeBarControl.run()]")
@@ -35,15 +33,15 @@ class WorkerTimeBarControl(QObject):
         self.finished.emit() #à definir: função a ser chamada após o fim do tempo -> inicioDoJogo ou Restart
 
 class WorkerControleGeral(QObject):
-    def __init__(self):
-        super().__init__()
-        self.finished = pyqtSignal()
-        self.teste = pyqtSignal(str)
+    finished = pyqtSignal()
+    teste = pyqtSignal(str)
 
     def run(self):
         print("\t[WorkerControleGeral()]")
         for i in range(1, 20):
-            self.teste.emit("teste realizado")
+            time.sleep(10)
+#[APAGAR]
+            self.teste.emit(f"\t\tteste realizado {int(time.time()%1000)} workerControleGeral")
         self.finished.emit()
 
 class myBtn(QPushButton):
@@ -61,9 +59,21 @@ class TelaInicialLayout(QVBoxLayout):
         #
         self.bloco1 = QVBoxLayout()
         self.start_button = QPushButton('Começar')
+        self.bloco1.setAlignment(Qt.AlignCenter) 
         self.start_button.clicked.connect(start_controlador_geral)
         self.bloco1.addWidget(self.start_button)
         self.addLayout(self.bloco1)
+
+        #estilos
+        self.start_button.setStyleSheet("QPushButton ""{"
+                                            "background-color: #2faa16;"
+                                            "color: #ffffff;"
+                                            "height: 80px;"
+                                            "width: 300px;"
+                                            "border-radius: 20px;"
+                                            "font-size: 30px;"
+                                            
+                                        "}")
 
 
 
@@ -91,7 +101,9 @@ class TelaConexaoLayout(QVBoxLayout):
         self.bloco2.addWidget(self.conectar_botao)
         self.bloco2.addWidget(self.status_conexao)
 
-        #Bloco 3
+        self.conectar_botao.setStyleSheet("QPushButton ""{""background-color: #1320d3;""}")
+
+        #Bloco 3"
         self.bloco3 = QVBoxLayout()
         #Componentes bloco 3
         self.caixa_conexao = QTextEdit()
@@ -106,7 +118,8 @@ class TelaConexaoLayout(QVBoxLayout):
                                     "{"
                                         "color: #ffffff;"
                                         "text-align: center;"
-                                        "background-color: #b2b2b6"
+                                        "background-color: #b2b2b6;"
+                                        "heigth: 40px;"
                                     "}"
                                     "QProgressBar::chunk"
                                     "{"
@@ -122,9 +135,9 @@ class TelaConexaoLayout(QVBoxLayout):
         self.addLayout(self.bloco2)
         self.addLayout(self.bloco3)
         self.addLayout(self.bloco4)
-
+#[APAGAR]
         print("[TelaInicialLayout Montada]")
-
+#[PASSAR CONTROLE PARA O SERVIDOR]
     def timeBarControl(self):
         print("[timeBarControl]")
         self.thread = QThread() # Instanciando uma thread em paralelo à principal -> QAplication.exec
@@ -142,7 +155,7 @@ class TelaConexaoLayout(QVBoxLayout):
 
     def timeBarSetter(self, valor):
         self.time_bar.setValue(valor)
-        self.time_bar.setFormat(f"{str(valor)} s") 
+        self.time_bar.setFormat(f"{str(valor)} segundos") 
         self.time_bar.setAlignment(Qt.AlignCenter) 
 
 
@@ -192,6 +205,7 @@ class Tela(QWidget):
         
     
     def startControladorGeral(self):
+#[APAGAR]
         print("[start controlador geral]")
         #startar controlador geral
         self.switchPage(self.tela_conexao_index)
@@ -218,3 +232,11 @@ class Tela(QWidget):
 app = QApplication(sys.argv)
 view = Tela()
 sys.exit(app.exec())
+
+
+
+
+# Taskas
+
+# transferir controle da time_bar para o WorkerControleGeral (Servidor)
+# permitir controle da QAplication atravez do servidor
