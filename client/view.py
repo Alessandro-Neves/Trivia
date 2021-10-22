@@ -22,8 +22,10 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 #classe para gerenciar threads em paralelo à thread principal -> (QAplication.exec)
 class WorkerTimeBarControl(QObject):
-    finished = pyqtSignal()
-    progress = pyqtSignal(int)
+    def __init__(self):
+        super().__init__()
+        self.finished = pyqtSignal()
+        self.progress = pyqtSignal(int)
 
     def run(self):
         print("\t[WorkerTimeBarControl.run()]")
@@ -33,8 +35,16 @@ class WorkerTimeBarControl(QObject):
         self.finished.emit() #à definir: função a ser chamada após o fim do tempo -> inicioDoJogo ou Restart
 
 class WorkerControleGeral(QObject):
-    finished = pyqtSignal()
+    def __init__(self):
+        super().__init__()
+        self.finished = pyqtSignal()
+        self.teste = pyqtSignal(str)
 
+    def run(self):
+        print("\t[WorkerControleGeral()]")
+        for i in range(1, 20):
+            self.teste.emit("teste realizado")
+        self.finished.emit()
 
 class myBtn(QPushButton):
     def __init__(self):
@@ -159,23 +169,24 @@ class Tela(QWidget):
 
     def mount(self):
         
-        # Create the stacked layout
+        # Criando vetor de telas
         self.stackedLayout = QStackedLayout()
         self.setLayout(self.stackedLayout)
-        # Create the first page
+
+        # Criando tela inicial
+        self.tela_inicial = QWidget()
+        self.tela_inicial_layout = TelaInicialLayout(self.startControladorGeral)
+        self.tela_inicial.setLayout(self.tela_inicial_layout)
+
+        # Criando tela conexao
         self.tela_conexao = QWidget()
         self.tela_conexao_layout = TelaConexaoLayout()
         self.tela_conexao.setLayout(self.tela_conexao_layout)
 
-        
+        #Criar tela de jogo
 
 
-        # Create the second page
-        self.tela_inicial = QWidget()
-        self.tela_inicial_layout = TelaInicialLayout(self.startControladorGeral)
-        self.tela_inicial.setLayout(self.tela_inicial_layout)
-        #self.stackedLayout.addWidget(self.page2)
-        # Add tela in the stacked layout
+        # Anexando telas à janela principal
         self.stackedLayout.addWidget(self.tela_inicial)
         self.stackedLayout.addWidget(self.tela_conexao)
         
@@ -184,9 +195,24 @@ class Tela(QWidget):
         print("[start controlador geral]")
         #startar controlador geral
         self.switchPage(self.tela_conexao_index)
+        # ...
+        self.thread = QThread() # Instanciando uma thread em paralelo à principal -> QAplication.exec
+        self.worker = WorkerControleGeral()  # Instanciando um "trabalhador" objeto para trabalhar em outra thread
+        self.worker.moveToThread(self.thread)   # Movendo o "trabalhador" para a nova thread
+            # Connectado signals e slots
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.teste.connect(self.teste)
+        
+        self.thread.start()
 
     def switchPage(self, page_index):
         self.stackedLayout.setCurrentIndex(page_index)
+
+    def teste(self, msg):
+        print(msg)
 
 
 app = QApplication(sys.argv)
