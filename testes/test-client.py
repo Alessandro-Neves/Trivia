@@ -34,7 +34,7 @@ class ThreadReceiver(threading.Thread):
                 
                 #global encerrar
                 if(message_tuple[0]=='CONECTADO'):  print('Servidor encontrado e conectado')
-                elif(message_tuple[0]=='SAIR' or encerrar == True):
+                elif(message_tuple[0]=='SAIR'):
                     encerrar = True
                     self.client.close()
                     break
@@ -69,10 +69,8 @@ class ThreadWriter(threading.Thread):
             # if message == '{}: {}'.format(nickname, '\exit'):
             #     self.client.send(message.encode('ascii'))
             #     break
-            if(message_tuple[0]=='SAIR' or encerrar == True):
+            if(message_tuple[0]=='SAIR'):
                 encerrar = True
-                print('SAINDO...')
-                print(str(encerrar))
                 self.client.close()
                 break
             self.client.send(message.encode('utf-8'))
