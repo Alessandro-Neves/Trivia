@@ -1,5 +1,6 @@
 import socket
 import threading
+import sys
 
 host = '127.0.0.1'
 port = 55555
@@ -7,8 +8,7 @@ estaBloqueado = False
 
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind((host, port))
-server.listen()
+
 
 clients = []
 nicknames = []
@@ -25,7 +25,7 @@ def removerClient(client):
 def escutar(client):
     while True:
             try:
-                message = client.recv(1024).decode('ascii')
+                message = client.recv(1024).decode('utf-8')
                 if(estaBloqueado==False):
                     message_tuple = tuple(map(str, message.split('||')))
 
@@ -35,8 +35,7 @@ def escutar(client):
                         break
                     elif(message_tuple[0]=='PRINT'):
                         print('\n', message_tuple[1])
-                    else:
-                        print('client: '+ str(message_tuple))
+                    elif(message_tuple[0]!=''): print("client: "+ str(message_tuple))
 
                 
             except:
@@ -55,9 +54,11 @@ def entrada(client):
             estaBloqueado = True
         elif(entrada_tuple[0]=='DESBLOQUEAR'):
             estaBloqueado = False
-        else:   broadcast(str(entrada).encode('ascii'))
+        else:   broadcast(str(entrada).encode('utf-8'))
 
 def iniciar():
+    server.bind((host, int(port)))
+    server.listen()
     while True:
         client, address = server.accept()
         if(estaBloqueado==False):
@@ -73,4 +74,9 @@ def iniciar():
             threadEnviar.start()
 
 
+if len(sys.argv) != 3:
+    print("use:", sys.argv[0], "<host> <port>")
+    sys.exit(1)
+
+host, port = sys.argv[1:3]
 iniciar()

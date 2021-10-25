@@ -8,6 +8,8 @@ import time
 #nickname = input("Choose your nickname: ")
 
 ## Encapsulando Thread
+
+encerrar = False
 class ThreadReceiver(threading.Thread):
 
     def __init__(self, client):
@@ -17,7 +19,8 @@ class ThreadReceiver(threading.Thread):
 
     def run(self):
         # Enquanto a thread não estiver 'morta'
-        while True:
+        global encerrar
+        while encerrar == False:
             try:
                 # If 'NICK' Send Nickname
                 message = self.client.recv(1024).decode('utf-8')
@@ -29,14 +32,14 @@ class ThreadReceiver(threading.Thread):
                 #     print(message)
                 message_tuple = tuple(map(str, message.split('||'))) 
                 
-
+                #global encerrar
                 if(message_tuple[0]=='CONECTADO'):  print('Servidor encontrado e conectado')
-                elif(message_tuple[0]=='SAIR'):
-                    print('SAINDO...')
+                elif(message_tuple[0]=='SAIR' or encerrar == True):
+                    encerrar = True
                     self.client.close()
                     break
                 elif(message_tuple[0]=='PRINT'):    print(message_tuple[1])
-                else: print("server: "+ str(message_tuple))
+                elif(message_tuple[0]!=''): print("server: "+ str(message_tuple))
 
             except:
                 # Close Connection When Error
@@ -59,11 +62,19 @@ class ThreadWriter(threading.Thread):
 
     def run(self):
         # Enquanto a thread não estiver 'morta'
-        while True:
+        global encerrar
+        while encerrar == False:
             message = str(input('> '))
+            message_tuple = tuple(map(str, message.split('||'))) 
             # if message == '{}: {}'.format(nickname, '\exit'):
             #     self.client.send(message.encode('ascii'))
             #     break
+            if(message_tuple[0]=='SAIR' or encerrar == True):
+                encerrar = True
+                print('SAINDO...')
+                print(str(encerrar))
+                self.client.close()
+                break
             self.client.send(message.encode('utf-8'))
 
     def stop(self):
@@ -73,10 +84,10 @@ class ThreadWriter(threading.Thread):
 
 
 class Conexao():
-    def __init__(self):
+    def __init__(self, host, port):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self.client.connect(('127.0.0.1', 55555))
+            self.client.connect((host, int(port)))
             print('Conectado')
             self.start_socket()
 
@@ -98,4 +109,10 @@ class Conexao():
         write_thread = ThreadWriter(self.client)
         write_thread.start()
 
-conexao = Conexao()
+
+if len(sys.argv) != 3:
+    print("use:", sys.argv[0], "<host> <port>")
+    sys.exit(1)
+
+host, port = sys.argv[1:3]
+conexao = Conexao(host, port)
