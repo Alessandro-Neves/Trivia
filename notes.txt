@@ -1,0 +1,16 @@
+criar ambiente viertual
+    $ python3 -m venv client
+
+entrar
+    $ source client/bin/activate
+
+Instalar Qt5:
+    $ python3 -m venv client
+
+https://github.com/andresnino/PyQt5/blob/master/SIACLE-%20Sistema%20para%20administrar%20clientes%20-%20PARTE%204/siacle.py
+
+<style>
+    *{
+        color: #2faa16;
+    }
+</style>
