@@ -29,13 +29,13 @@ def escutar(client):
                 if(estaBloqueado==False):
                     message_tuple = tuple(map(str, message.split('||')))
 
-                    if(message_tuple[0]=='SAIR'):
+                    if(message_tuple[0]=='!sair'):
                         removerClient(client)
-                        print('\nClient desconected')
+                        print('[Cliente desconectado]')
                         break
-                    elif(message_tuple[0]=='PRINT'):
+                    elif(message_tuple[0]=='!print'):
                         print('\n', message_tuple[1])
-                    elif(message_tuple[0]!=''): print("client: "+ str(message_tuple))
+                    elif(message_tuple[0]!=''): print("cliente: "+ str(message_tuple))
 
                 
             except:
@@ -50,9 +50,9 @@ def entrada(client):
         entrada = str(input('>: '))
         entrada_tuple = tuple(map(str, entrada.split('||')))
         #removedorAspas = slice(1, -1)
-        if(entrada_tuple[0]=='BLOQUEAR'):
+        if(entrada_tuple[0]=='!bloquear'):
             estaBloqueado = True
-        elif(entrada_tuple[0]=='DESBLOQUEAR'):
+        elif(entrada_tuple[0]=='!desbloquear'):
             estaBloqueado = False
         else:   broadcast(str(entrada).encode('utf-8'))
 
@@ -66,7 +66,7 @@ def iniciar():
 
             clients.append(client)
 
-            client.send('CONECTADO'.encode('utf-8'))
+            client.send('!conectado'.encode('utf-8'))
 
             threadEscuta = threading.Thread(target=escutar, args=(client,))
             threadEnviar = threading.Thread(target=entrada, args=(client,))
