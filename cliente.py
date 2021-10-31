@@ -266,8 +266,7 @@ class Tela(QWidget):
         self.montar()
         self.show()
     
-    def setarConectores(self, transmissor, receptor):
-        self.transmissor = transmissor
+    def setarConectores(self, receptor):
         self.receptor = receptor
 
     def conectar(self):
@@ -277,9 +276,7 @@ class Tela(QWidget):
         try:
             self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.client.connect((host, int(port)))
-            self.transmissor.conectar(host, port, self.client)
             self.receptor.conectar(host, port, self.client)
-            self.transmissor.start()
             self.receptor.start()
         except:
             print("[Exception]: Tela().conectar")
@@ -350,35 +347,6 @@ class ThreadReceptor(threading.Thread):
     def conectar(self, host, port, client):
         self.client = client
 
-
-class ThreadTransmissor(threading.Thread):
-
-    def __init__(self):
-        super(ThreadTransmissor, self).__init__()
-        self.kill = threading.Event()
-
-    def run(self):
-        global encerrar
-        while encerrar == False:
-            message = str(input('> '))
-            message_tuple = tuple(map(str, message.split('||'))) 
-            
-            if(message_tuple[0]=='!sair'):
-                encerrar = True
-                self.client.send("!sair".encode('utf-8'))
-                print("saindo")
-                self.client.close()
-                break
-            self.client.send(message.encode('utf-8'))
-
-    def conectar(self, host, port, client):
-        self.client = client
-        
-
-    def stop(self):
-        print("thread  transmissor parando.")
-        self.kill.set()
-
 class gameController():
     
     def __init__(self, host, port):
@@ -387,11 +355,10 @@ class gameController():
         self.port = port
 
         self.app = QApplication(sys.argv)
-        self.transmissor = ThreadTransmissor()
         self.view = Tela()
         self.receptor = ThreadReceptor(self.view)
         self.view.show()
-        self.view.setarConectores(self.transmissor, self.receptor)
+        self.view.setarConectores(self.receptor)
         self.iniciar()
 
     def test(self):
