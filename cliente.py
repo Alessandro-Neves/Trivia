@@ -201,6 +201,52 @@ class TelaJogo(QWidget):
         self.layout.addLayout(self.divEsquerda)
         self.layout.addLayout(self.divDireita)
 
+    def definirTema(self):
+        dlg = QDialog()
+        dlg.setGeometry(20, 80, 400, 500)
+        dlgLayout = QVBoxLayout()
+        dlg.setLayout(dlgLayout)
+        dlg.setWindowTitle('Sua vez')
+
+        blocoA = QVBoxLayout()
+        blocoA.addWidget(QLabel('Tema'))
+        temaInput = QLineEdit()
+        blocoA.addWidget(temaInput)
+        blocoA.addWidget(QLabel('Dica'))
+        dicaInput = QLineEdit()
+        blocoA.addWidget(dicaInput)
+        blocoA.addWidget(QLabel('Resposta'))
+        respostaInput = QLineEdit()
+        respostaInput.setStyleSheet("QLineEdit"
+                                    "{"
+                                    "margin-bottom: 80px;"
+                                    "}")
+        blocoA.addWidget(respostaInput)
+
+        blocoB = QVBoxLayout()
+        iniciarRodadaBtn = QPushButton('Iniciar Rodada')
+        blocoB.addWidget(iniciarRodadaBtn)
+        timer = QProgressBar()
+        timer.setValue(100)
+        timer.setStyleSheet("QProgressBar"
+                                    "{"
+                                        "color: #ffffff;"
+                                        "text-align: center;"
+                                        "background-color: #b2b2b6;"
+                                        #"heigth: 40px;"
+                                    "}"
+                                    "QProgressBar::chunk"
+                                    "{"
+                                        "background-color: #1320d3"
+                                    "}"
+                                    )
+        blocoB.addWidget(timer)
+
+        dlgLayout.addLayout(blocoA)
+        dlgLayout.addLayout(blocoB)
+
+        dlg.exec_()
+
 class Tela(QWidget):
     def __init__(self):
         super().__init__()
@@ -287,6 +333,8 @@ class ThreadReceptor(threading.Thread):
                     pass
                 elif(message_tuple[0] == '!iniciar-time-bar'):
                     self.view.tela_conexao.timeBarControl()
+                elif(message_tuple[0] == '!definir-tema'):
+                    self.view.tela_jogo.definirTema()
                 elif(message_tuple[0]=='!print'):    print(message_tuple[1])
                 elif(message_tuple[0]!=''): print("server: "+ str(message_tuple))
 
