@@ -149,15 +149,57 @@ class TelaConexao(QWidget):
 class TelaJogo(QWidget):
     def __init__(self, main):
         super().__init__()
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
         self.main = main
+        self.layout = QHBoxLayout()
+        self.setLayout(self.layout)
+        
+        self.divEsquerda = QVBoxLayout()
+        self.divDireita = QVBoxLayout()
+
         self.bloco1 = QVBoxLayout()
-        self.start_button = QPushButton('Começar')
-        self.bloco1.setAlignment(Qt.AlignCenter) 
-        self.start_button.clicked.connect(self.main.iniciar)
-        self.bloco1.addWidget(self.start_button)
-        self.layout.addLayout(self.bloco1)
+        self.bloco1.addWidget(QLabel('Jogadores'))
+        self.caixaJogadores = QTextEdit()
+        self.bloco1.addWidget(self.caixaJogadores)
+
+        self.bloco2 = QVBoxLayout()
+        self.dicaLabel = QLabel('Texto com x letras')
+        self.pistaCaixa = QTextEdit()
+        self.bloco2.addWidget(self.dicaLabel)
+        self.bloco2.addWidget(self.pistaCaixa)
+
+        self.bloco3 = QVBoxLayout()
+        self.bloco3.addWidget(QLabel("Log"))
+        self.caixaResposta = QTextEdit()
+        self.bloco3.addWidget(self.caixaResposta)
+
+        self.bloco4 = QVBoxLayout()
+        self.tempo = QProgressBar()
+        self.tempo.setValue(100)
+        self.tempo.setStyleSheet("QProgressBar"
+                                    "{"
+                                        "color: #ffffff;"
+                                        "text-align: center;"
+                                        "background-color: #b2b2b6;"
+                                        #"heigth: 40px;"
+                                    "}"
+                                    "QProgressBar::chunk"
+                                    "{"
+                                        "background-color: #1320d3"
+                                    "}"
+                                    )
+
+        self.tempo.setFormat('') 
+        self.bloco4.addWidget(self.tempo)
+        self.tentativaRespostaInput = QLineEdit()
+        self.bloco4.addWidget(self.tentativaRespostaInput)
+
+        self.divEsquerda.addLayout(self.bloco1)
+        self.divDireita.addLayout(self.bloco2)
+        self.divDireita.addLayout(self.bloco3)
+        self.divDireita.addLayout(self.bloco4)
+
+        self.layout.addLayout(self.divEsquerda)
+        self.layout.addLayout(self.divDireita)
 
 class Tela(QWidget):
     def __init__(self):
@@ -202,9 +244,11 @@ class Tela(QWidget):
 
         self.tela_inicial = TelaInicial(self)
         self.tela_conexao = TelaConexao(self)
+        self.tela_jogo = TelaJogo(self)
 
         self.stackedLayout.addWidget(self.tela_inicial)
         self.stackedLayout.addWidget(self.tela_conexao)
+        self.stackedLayout.addWidget(self.tela_jogo)
         
     def iniciar(self):
         #startar controlador geral
