@@ -284,6 +284,9 @@ class Tela(QWidget):
         except:
             print("[Exception]: Tela().conectar")
 
+    def desconectar(self):
+        self.client.send("!sair".encode('utf-8'))
+
     def montar(self):
         self.stackedLayout = QStackedLayout()
         self.setLayout(self.stackedLayout)
@@ -342,6 +345,7 @@ class ThreadReceptor(threading.Thread):
                 print("An error occured!")
                 self.client.close()
                 break
+        self.client.close()
 
     def conectar(self, host, port, client):
         self.client = client
@@ -361,6 +365,8 @@ class ThreadTransmissor(threading.Thread):
             
             if(message_tuple[0]=='!sair'):
                 encerrar = True
+                self.client.send("!sair".encode('utf-8'))
+                print("saindo")
                 self.client.close()
                 break
             self.client.send(message.encode('utf-8'))
@@ -403,6 +409,9 @@ class gameController():
         # self.transmissor.start()
         encerrar = False
         self.app.exec()
+        encerrar = True
+        print("Saindo...")
+        self.view.desconectar()
 
 
 
