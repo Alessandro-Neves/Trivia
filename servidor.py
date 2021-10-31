@@ -36,12 +36,20 @@ def escutar(client):
                     message_tuple = tuple(map(str, message.split('||')))
 
                     if(message_tuple[0]=='!sair'):
-                        client.send('!removido')
+                        client.send('!removido'.encode('utf-8'))
                         removerClient(client)
                         print('[Cliente desconectado]')
                         break
                     elif(message_tuple[0]=='!print'):
                         print('\n', message_tuple[1])
+                    elif(message_tuple[0]=='!definir-apelido'):
+                        print('[Apelido]')
+                        if(message_tuple[1]=='Alessandro'):
+                            print('[Apelido já existe]')
+                            client.send('!apelido-ja-existe'.encode('utf-8'))
+                            #removerClient(client)
+                        else: print("cliente: "+ str(message_tuple))
+
                     elif(message_tuple[0]!=''): print("cliente: "+ str(message_tuple))
 
                 
