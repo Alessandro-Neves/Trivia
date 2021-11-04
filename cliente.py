@@ -290,7 +290,7 @@ class Tela(QWidget):
             self.client.connect((self.host, int(self.port)))
             self.receptor.conectar(self.host, self.port, self.client)
             self.receptor.start()
-            time.sleep(0.1)
+            #time.sleep(0.2)
             self.tela_conexao.status_conexao.setText('<span style=\"color: green;\">Servidor conectado</span>')
             self.client.send(f"!definir-apelido||{self.apelido}".encode('utf-8'))
             self.tela_conexao.conectar_botao.setEnabled(False)

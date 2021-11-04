@@ -1,6 +1,7 @@
 import socket
 import threading
 import sys
+import time
 
 host = '127.0.0.1'
 port = 55555
@@ -46,6 +47,7 @@ def escutar(client):
                         print('[Apelido]')
                         if(message_tuple[1]=='Alessandro'):
                             print('[Apelido já existe]')
+                            time.sleep(0.01)
                             client.send('!apelido-ja-existe'.encode('utf-8'))
                             #removerClient(client)
                         else: print("cliente: "+ str(message_tuple))
