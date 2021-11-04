@@ -144,7 +144,14 @@ class TelaConexao(QWidget):
     def timeBarSetter(self, valor):
         self.time_bar.setValue(valor)
         self.time_bar.setFormat(f"{str(valor)} segundos") 
-        self.time_bar.setAlignment(Qt.AlignCenter) 
+        self.time_bar.setAlignment(Qt.AlignCenter)
+
+    def escolherOutroApelido(self):
+        self.status_conexao.setText('<span style=\"color: orange;\">O apelido já existe!</span>')
+        self.apelido_input.setEnabled(True)
+        self.conectar_botao.setEnabled(True)
+        self.main.desconectar()
+
 
 class TelaJogo(QWidget):
     def __init__(self, main):
@@ -184,7 +191,7 @@ class TelaJogo(QWidget):
                                     "}"
                                     "QProgressBar::chunk"
                                     "{"
-                                        "background-color: #1320d3"
+                                        "background-color: #1320d3;"
                                     "}"
                                     )
 
@@ -266,23 +273,35 @@ class Tela(QWidget):
         self.montar()
         self.show()
     
-    def setarConectores(self, transmissor, receptor):
-        self.transmissor = transmissor
+    def setarConectores(self, receptor):
         self.receptor = receptor
 
     def conectar(self):
-        # mudar para host port da tela
-        global host
-        global port
+        address = self.tela_conexao.servidor_input.text()
+        separador = address.find(':')
+        self.host = address[0:separador]
+        self.port = address[(separador+1):]
+        
+        self.apelido = self.tela_conexao.apelido_input.text()
+        print(f"[Tentando conectar: {address}]")
         try:
             self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.client.connect((host, int(port)))
-            self.transmissor.conectar(host, port, self.client)
-            self.receptor.conectar(host, port, self.client)
-            self.transmissor.start()
+            self.receptor = ThreadReceptor(self)
+            self.client.connect((self.host, int(self.port)))
+            self.receptor.conectar(self.host, self.port, self.client)
             self.receptor.start()
+            #time.sleep(0.2)
+            self.tela_conexao.status_conexao.setText('<span style=\"color: green;\">Servidor conectado</span>')
+            self.client.send(f"!definir-apelido||{self.apelido}".encode('utf-8'))
+            self.tela_conexao.conectar_botao.setEnabled(False)
+            self.tela_conexao.apelido_input.setEnabled(False)
+            self.tela_conexao.servidor_input.setEnabled(False)
         except:
             print("[Exception]: Tela().conectar")
+            self.tela_conexao.status_conexao.setText('<span style=\"color: red;\">Servidor não encontrado</span>')
+
+    def desconectar(self):
+        self.client.send("!sair".encode('utf-8'))
 
     def montar(self):
         self.stackedLayout = QStackedLayout()
@@ -323,8 +342,11 @@ class ThreadReceptor(threading.Thread):
                 message_tuple = tuple(map(str, message.split('||'))) 
 
                 if(message_tuple[0]=='!conectado'):  print('[servidor conectado]')
-                elif(message_tuple[0]=='!sair'):
+                elif(message_tuple[0]=='!encerrar'):
                     encerrar = True
+                    self.client.close()
+                    break
+                elif(message_tuple[0]=='!removido'):
                     self.client.close()
                     break
                 elif(message_tuple[0] == '!mudar-tela'):
@@ -335,6 +357,9 @@ class ThreadReceptor(threading.Thread):
                     self.view.tela_conexao.timeBarControl()
                 elif(message_tuple[0] == '!definir-tema'):
                     self.view.tela_jogo.definirTema()
+                elif(message_tuple[0] == '!apelido-ja-existe'):
+                    print('[Apelido ja existe]')
+                    self.view.tela_conexao.escolherOutroApelido()
                 elif(message_tuple[0]=='!print'):    print(message_tuple[1])
                 elif(message_tuple[0]!=''): print("server: "+ str(message_tuple))
 
@@ -342,36 +367,10 @@ class ThreadReceptor(threading.Thread):
                 print("An error occured!")
                 self.client.close()
                 break
+        self.client.close()
 
     def conectar(self, host, port, client):
         self.client = client
-
-
-class ThreadTransmissor(threading.Thread):
-
-    def __init__(self):
-        super(ThreadTransmissor, self).__init__()
-        self.kill = threading.Event()
-
-    def run(self):
-        global encerrar
-        while encerrar == False:
-            message = str(input('> '))
-            message_tuple = tuple(map(str, message.split('||'))) 
-            
-            if(message_tuple[0]=='!sair'):
-                encerrar = True
-                self.client.close()
-                break
-            self.client.send(message.encode('utf-8'))
-
-    def conectar(self, host, port, client):
-        self.client = client
-        
-
-    def stop(self):
-        print("thread  transmissor parando.")
-        self.kill.set()
 
 class gameController():
     
@@ -381,11 +380,10 @@ class gameController():
         self.port = port
 
         self.app = QApplication(sys.argv)
-        self.transmissor = ThreadTransmissor()
         self.view = Tela()
         self.receptor = ThreadReceptor(self.view)
         self.view.show()
-        self.view.setarConectores(self.transmissor, self.receptor)
+        self.view.setarConectores(self.receptor)
         self.iniciar()
 
     def test(self):
@@ -403,6 +401,9 @@ class gameController():
         # self.transmissor.start()
         encerrar = False
         self.app.exec()
+        encerrar = True
+        print("Saindo...")
+        self.view.desconectar()
 
 
 
