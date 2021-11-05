@@ -27,15 +27,18 @@ encerrar = False
 port = ''
 host = ''
 
-class WorkerTimeBarControl(QObject):
+class WorkerConectados(QObject):
     finished = pyqtSignal()
-    progress = pyqtSignal(int)
+    #progress = pyqtSignal(int)
+    progress = pyqtSignal()
+    
+    global encerrar
 
     def run(self):
-        print("\t[WorkerTimeBarControl.run()]")
-        for i in range(100, -1, -1):
-            time.sleep(0.3)
-            self.progress.emit(i)
+        while encerrar == False:
+            time.sleep(1)
+            self.progress.emit()
+            #self.progress.emit(i)
         self.finished.emit() #à definir: função a ser chamada após o fim do tempo -> inicioDoJogo ou Restart
 
 class TelaInicial(QWidget):
@@ -98,7 +101,9 @@ class TelaConexao(QWidget):
         #Componentes bloco 3
         self.caixa_conexao = QTextEdit()
         self.bloco3.addWidget(QLabel('Aguardando jogadores'))
+        self.caixa_teste = QLabel('teste')
         self.bloco3.addWidget(self.caixa_conexao)
+        self.bloco3.addWidget(self.caixa_teste)
 
         #Bloco4
         self.bloco4 = QVBoxLayout()
@@ -129,24 +134,7 @@ class TelaConexao(QWidget):
     def setarApelidosConectados(self, msg):
         #self.caixa_conexao.setText(msg)
         print("SETARRRRR")
-        self.caixa_conexao.setText("ola mundo")
-        print(msg)
-
-
-#[PASSAR CONTROLE PARA O SERVIDOR]
-    def timeBarControl(self):
-        self.thread = QThread() # Instanciando uma thread em paralelo à principal -> QAplication.exec
-        self.worker = WorkerTimeBarControl()  # Instanciando um "trabalhador" objeto para trabalhar em outra thread
-        self.worker.moveToThread(self.thread)   # Movendo o "trabalhador" para a nova thread
-            # Connectado signals e slots
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.worker.progress.connect(self.timeBarSetter)
-        
-        self.thread.start()
-
+        self.caixa_conexao.setText(msg)
 
     def timeBarSetter(self, valor):
         self.time_bar.setValue(valor)
@@ -216,6 +204,7 @@ class TelaJogo(QWidget):
         self.layout.addLayout(self.divEsquerda)
         self.layout.addLayout(self.divDireita)
 
+
     def enviarResposta(self):
         resposta = self.tentativaRespostaInput.text()
         self.main.client.send(f"!resposta,{resposta}".encode('utf-8'))
@@ -269,6 +258,7 @@ class TelaJogo(QWidget):
 class Tela(QWidget):
     def __init__(self):
         super().__init__()
+        self.conectadosTemplate = '<span style=\"color: black;\">Alessandro </span><span style=\"color: green;\">entrou </span><br>'
         self.setWindowTitle("Trivia Game !")
         self.tela_inicial_index = 0
         self.tela_conexao_index = 1
@@ -284,6 +274,7 @@ class Tela(QWidget):
 
         self.montar()
         self.show()
+        self.conectadosAtualWorker()
     
     def setarConectores(self, receptor):
         self.receptor = receptor
@@ -338,7 +329,18 @@ class Tela(QWidget):
     def switchPage(self, page_index):
         self.stackedLayout.setCurrentIndex(page_index)
 
-
+    def conectadosAtualWorker(self):
+        self.thread = QThread() # Instanciando uma thread em paralelo à principal -> QAplication.exec
+        self.worker = WorkerConectados()  # Instanciando um "trabalhador" objeto para trabalhar em outra thread
+        self.worker.moveToThread(self.thread)   # Movendo o "trabalhador" para a nova thread
+            # Connectado signals e slots
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.progress.connect(lambda: self.tela_conexao.setarApelidosConectados(self.conectadosTemplate))
+        
+        self.thread.start()
 
 
 
@@ -382,7 +384,7 @@ class ThreadReceptor(threading.Thread):
                     textAps = ''
                     for apelido in aps:
                         textAps= textAps+'<span style=\"color: black;\">{} </span><span style=\"color: green;\">entrou </span><br>'.format(apelido)
-                    self.view.tela_conexao.setarApelidosConectados(textAps)
+                        self.view.conectadosTemplate = textAps
                 elif(message_tuple[0]=='!print'):    print(message_tuple[1])
                 elif(message_tuple[0]!=''): print("server: "+ str(message_tuple))
 

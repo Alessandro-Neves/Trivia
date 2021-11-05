@@ -5,92 +5,117 @@ import time
 
 host = '127.0.0.1'
 port = 55555
-estaBloqueado = False
 
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
-clients = []
-apelidos = []
 
-def broadcast(message):
-    for client in clients:
-        try:
-            client.send(message)
-        except:
-            removerClient(client)
+class Server():
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self.clients = []
+        self.apelidos = []
+        self.estaBloqueado = False
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-def removerClient(client):
-    try:
-        index = clients.index(client)
-        clients.remove(client)
-        client.close()
-    except:
-        pass
+        self.iniciar()
 
-def escutar(client):
-    while True:
+
+    def broadcast(self, message):
+        for client in self.clients:
             try:
-                message = client.recv(1024).decode('utf-8')
-                if(estaBloqueado==False):
-                    message_tuple = tuple(map(str, message.split('||')))
-
-                    if(message_tuple[0]=='!sair'):
-                        client.send('!removido'.encode('utf-8'))
-                        removerClient(client)
-                        print('[Cliente desconectado]')
-                        break
-                    elif(message_tuple[0]=='!print'):
-                        print('\n', message_tuple[1])
-                    elif(message_tuple[0]=='!definir-apelido'):
-                        print('[Apelido]')
-                        if(message_tuple[1]=='Alessandro'):
-                            print('[Apelido já existe]')
-                            time.sleep(0.01)
-                            client.send('!apelido-ja-existe'.encode('utf-8'))
-                            #removerClient(client)
-                        else: print("cliente: "+ str(message_tuple))
-
-                    elif(message_tuple[0]!=''): print("cliente: "+ str(message_tuple))
-
-                
+                client.send(message)
             except:
-                removerClient(client)
-                break
+                self.removerClient(client)
+
+    def removerClient(self, client):
+        try:
+            index = self.clients.index(client)
+            self.clients.remove(client)
+            self.apelidos.remove(self.apelidos[index])
+            client.close()
+        except:
+            pass
+
+    def adicionarApelido(self, client, apelido):
+        try:
+            index = self.clients.index(client)
+            self.apelidos.append(apelido)
+            self.apelidos[index] = apelido
+            self.broadcast(('!Ap-conectados,'+'-'.join(map(str, self.apelidos))).encode('utf-8'))
+        except:
+            print("[Except: adicionarApelido]")
+
+    def escutar(self, client):
+        while True:
+                try:
+                    message = client.recv(1024).decode('utf-8')
+                    if(self.estaBloqueado==False):
+                        #message_tuple = tuple(map(str, message.split('||')))
+                        message_tuple = message.split(',')
+
+                        if(message_tuple[0]=='!sair'):
+                            client.send('!removido'.encode('utf-8'))
+                            self.removerClient(client)
+                            print('[Cliente desconectado]')
+                            break
+                        elif(message_tuple[0]=='!print'):
+                            print('\n', message_tuple[1])
+                        elif(message_tuple[0]=='!definir-apelido'):
+                            print('[Apelido]')
+                            if(message_tuple[1] in self.apelidos):
+                                print('[Apelido já existe]')
+                                time.sleep(0.005)
+                                client.send('!apelido-ja-existe'.encode('utf-8'))
+                                #removerClient(client)
+                            else:
+                                self.adicionarApelido(client, message_tuple[1])
+                                print("cliente e apelido add: ", self.apelidos)
+
+                        elif(message_tuple[0]!=''): print("cliente: "+ str(message_tuple))
+
+                    
+                except:
+                    self.removerClient(client)
+                    break
 
 
-# Receiving / Listening Function
-def entrada():
-    global estaBloqueado
-    while True:
-        entrada = str(input('>: '))
-        entrada_tuple = tuple(map(str, entrada.split('||')))
-        #removedorAspas = slice(1, -1)
-        if(entrada_tuple[0]=='!bloquear'):
-            estaBloqueado = True
-        elif(entrada_tuple[0]=='!desbloquear'):
-            estaBloqueado = False
-        elif(entrada_tuple[0] == '*print-clients'): print("\n-- ", clients)
-        else:   broadcast(str(entrada).encode('utf-8'))
 
-def iniciar():
-    server.bind((host, int(port)))
-    server.listen()
-    threadEnviar = threading.Thread(target=entrada, args=())
-    threadEnviar.start()
-    while True:
-        client, address = server.accept()
-        if(estaBloqueado==False):
-            print("Conectado com {}".format(str(address)))
+    # Receiving / Listening Function
+    def entrada(self):
+        global estaBloqueado
+        while True:
+            entrada = str(input('>: '))
+            #entrada_tuple = tuple(map(str, entrada.split('||')))
+            entrada_tuple = entrada.split(',')
+            #removedorAspas = slice(1, -1)
+            if(entrada_tuple[0]=='!bloquear'):
+                self.estaBloqueado = True
+            elif(entrada_tuple[0]=='!desbloquear'):
+                self.estaBloqueado = False
+            elif(entrada_tuple[0] == '*print-clients'): print("\n-- ", self.clients)
+            elif(entrada_tuple[0] == '*print-apelidos'): print("\n-- ", self.apelidos, len(self.apelidos))
+            else:   self.broadcast(str(entrada).encode('utf-8'))
 
-            clients.append(client)
+    def iniciar(self):
+        self.server.bind((self.host, int(self.port)))
+        self.server.listen()
+        self.threadEnviar = threading.Thread(target=self.entrada, args=())
+        self.threadEnviar.start()
+        while True:
+            client, address = self.server.accept()
+            if(self.estaBloqueado==False):
+                print("Conectado com {}".format(str(address)))
 
-            client.send('!conectado'.encode('utf-8'))
+                self.clients.append(client)
 
-            threadEscuta = threading.Thread(target=escutar, args=(client,))
-            
-            threadEscuta.start()
+                client.send('!conectado'.encode('utf-8'))
+                time.sleep(0.01)
+
+                threadEscuta = threading.Thread(target=self.escutar, args=(client,))
+                
+                threadEscuta.start()
 
 
 
@@ -99,4 +124,4 @@ if len(sys.argv) != 3:
     sys.exit(1)
 
 host, port = sys.argv[1:3]
-iniciar()
+server = Server(host, port)
