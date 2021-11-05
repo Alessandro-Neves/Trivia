@@ -2,9 +2,30 @@ import socket
 import threading
 import sys
 import time
+import asyncio
+from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 host = '127.0.0.1'
 port = 55555
+
+
+
+
+class iniciarTempoConexao(QObject):
+    finished = pyqtSignal()
+    #progress = pyqtSignal(int)
+    progress = pyqtSignal()
+    tempoEsgotado = pyqtSignal()
+    
+    global encerrar
+
+    def run(self):
+        for i in range(100, 0, -1):
+            time.sleep(1)
+            print(i)
+            self.progress.emit(i)
+            #self.progress.emit(i)
+        self.finished.emit() #à definir: função a ser chamada após o fim do tempo -> inicioDoJogo ou Restart
 
 
 
@@ -85,13 +106,28 @@ class Server():
                             else:
                                 self.adicionarApelido(client, message_tuple[1])
                                 print("cliente e apelido add: ", self.apelidos)
-
+                        elif(message_tuple[0]=='!iniciar-partida'):
+                            self.iniciarPartida()
                         elif(message_tuple[0]!=''): print("cliente: "+ str(message_tuple))
 
                     
                 except:
                     self.removerClient(client)
                     break
+
+    def atualizarTimeConexao(self):
+        for i in range(100, 0, -1):
+            time.sleep(1)
+            self.broadcast('!atualizarTimerConexao,{}'.format(i).encode('utf-8'))
+
+    def iniciarPartida(self):
+        threadTimer = threading.Thread(target=self.atualizarTimeConexao, args=())
+        threadTimer.start()# Instanciando uma thread em paralelo à principal -> QAplication.
+        threadTimer.join()
+        print('AAAAABBBBBCCCCC')
+
+
+
 
 
 

@@ -36,6 +36,7 @@ class WorkerConectados(QObject):
     updateConnectedUsers = pyqtSignal(str)
     addDesconectedUsers = pyqtSignal(str)
     deleteAllConnectedUsers = pyqtSignal()
+    atualizarTimerConexao = pyqtSignal(int)
     
     global encerrar
 
@@ -85,6 +86,8 @@ class WorkerConectados(QObject):
                     textAp = '<span style=\"color: black;\">{} </span><span style=\"color: red;\">saiu </span>'.format(ap)
                     self.addDesconectedUsers.emit(textAp)
                 elif(message_tuple[0]=='!print'):    print(message_tuple[1])
+                elif(message_tuple[0]=='!atualizarTimerConexao'):
+                    self.atualizarTimerConexao.emit(int(message_tuple[1]))
                 elif(message_tuple[0]!=''): print("server: "+ str(message_tuple))
 
             except:
@@ -164,9 +167,10 @@ class TelaConexao(QWidget):
         self.caixa_conexao = QTextEdit()
         self.caixa_conexao.setReadOnly(True)
         self.bloco3.addWidget(QLabel('Aguardando jogadores'))
-        self.caixa_teste = QLabel('teste')
+        self.btn_iniciar = QPushButton('Iniciar Partida')
+        self.btn_iniciar.clicked.connect(lambda: self.main.iniciarPartida())
         self.bloco3.addWidget(self.caixa_conexao)
-        self.bloco3.addWidget(self.caixa_teste)
+        self.bloco3.addWidget(self.btn_iniciar)
 
         #Bloco4
         self.bloco4 = QVBoxLayout()
@@ -278,6 +282,7 @@ class TelaJogo(QWidget):
 
     def enviarResposta(self):
         resposta = self.tentativaRespostaInput.text()
+        self.tentativaRespostaInput.setText('')
         self.main.client.send(f"!resposta,{resposta}".encode('utf-8'))
 
     def definirTema(self):
@@ -403,6 +408,10 @@ class Tela(QWidget):
     def switchPage(self, page_index):
         self.stackedLayout.setCurrentIndex(page_index)
 
+    def iniciarPartida(self):
+        print("INICIANDO PARTIDA")
+        self.client.send(f"!iniciar-partida".encode('utf-8'))
+
     def mountReceiver(self):
         self.thread = QThread() # Instanciando uma thread em paralelo à principal -> QAplication.exec
         self.receiver = WorkerConectados()  # Instanciando um "trabalhador" objeto para trabalhar em outra thread
@@ -418,6 +427,7 @@ class Tela(QWidget):
         self.receiver.updateConnectedUsers.connect(self.tela_conexao.setarApelidosConectados)
         self.receiver.addDesconectedUsers.connect(self.tela_conexao.adicionarApelidoDesconectado)
         self.receiver.deleteAllConnectedUsers.connect(self.tela_conexao.apagarCaixaConexao)
+        self.receiver.atualizarTimerConexao.connect(self.tela_conexao.timeBarSetter)
 
 
 
