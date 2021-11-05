@@ -34,6 +34,8 @@ class WorkerConectados(QObject):
     switchPage = pyqtSignal(int)
     chooseAnotherNickname = pyqtSignal()
     updateConnectedUsers = pyqtSignal(str)
+    addDesconectedUsers = pyqtSignal(str)
+    deleteAllConnectedUsers = pyqtSignal()
     
     global encerrar
 
@@ -69,12 +71,19 @@ class WorkerConectados(QObject):
                     #self.view.tela_conexao.escolherOutroApelido()
                     self.chooseAnotherNickname.emit()
                 elif(message_tuple[0] == "!Ap-conectados"):
-                    aps = message_tuple[1].split('-')
+                    aps = message_tuple[1].split('*')
                     textAps = ''
+                    self.deleteAllConnectedUsers.emit()
                     for apelido in aps:
-                        textAps= textAps+'<span style=\"color: black;\">{} </span><span style=\"color: green;\">entrou </span><br>'.format(apelido)
+                        #textAps= textAps+'<span style=\"color: black;\">{} </span><span style=\"color: green;\">entrou </span><br>'.format(apelido)
+                        textAps= '<span style=\"color: black;\">{} </span><span style=\"color: green;\">entrou </span>'.format(apelido)
                         #self.view.conectadosTemplate = textAps
                         self.updateConnectedUsers.emit(textAps)
+
+                elif(message_tuple[0]=='!Ap-desconectado'):
+                    ap = message_tuple[1]
+                    textAp = '<span style=\"color: black;\">{} </span><span style=\"color: red;\">saiu </span>'.format(ap)
+                    self.addDesconectedUsers.emit(textAp)
                 elif(message_tuple[0]=='!print'):    print(message_tuple[1])
                 elif(message_tuple[0]!=''): print("server: "+ str(message_tuple))
 
@@ -153,6 +162,7 @@ class TelaConexao(QWidget):
         self.bloco3 = QVBoxLayout()
         #Componentes bloco 3
         self.caixa_conexao = QTextEdit()
+        self.caixa_conexao.setReadOnly(True)
         self.bloco3.addWidget(QLabel('Aguardando jogadores'))
         self.caixa_teste = QLabel('teste')
         self.bloco3.addWidget(self.caixa_conexao)
@@ -185,10 +195,14 @@ class TelaConexao(QWidget):
         self.layout.addLayout(self.bloco4)
 
     def setarApelidosConectados(self, msg):
-        #NAO APAGAR A LINHA ABAIXO
-        print('')
-        #NAO APAGAR A LINHA ACIMA
-        self.caixa_conexao.setText(msg)
+        #self.caixa_conexao.setText(msg)
+        self.caixa_conexao.append(msg)
+    
+    def adicionarApelidoDesconectado(self, msg):
+        # text = self.caixa_conexao.toPlainText()
+        # text = text+msg
+        #self.caixa_conexao.insertHtml(msg)
+        self.caixa_conexao.append(msg)
 
     def timeBarSetter(self, valor):
         self.time_bar.setValue(valor)
@@ -200,6 +214,9 @@ class TelaConexao(QWidget):
         self.apelido_input.setEnabled(True)
         self.conectar_botao.setEnabled(True)
         self.main.desconectar()
+
+    def apagarCaixaConexao(self):
+        self.caixa_conexao.setText('')
 
 
 class TelaJogo(QWidget):
@@ -393,12 +410,14 @@ class Tela(QWidget):
             # Connectado signals e slots
         self.thread.started.connect(self.receiver.run)
         self.receiver.finished.connect(self.thread.quit)
-        self.receiver.finished.connect(self.receiver.deleteLater)
+        #self.receiver.finished.connect(self.receiver.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
         self.receiver.progress.connect(lambda: self.tela_conexao.setarApelidosConectados(self.conectadosTemplate))
         self.receiver.switchPage.connect(self.switchPage)
         self.receiver.chooseAnotherNickname.connect(self.tela_conexao.escolherOutroApelido)
         self.receiver.updateConnectedUsers.connect(self.tela_conexao.setarApelidosConectados)
+        self.receiver.addDesconectedUsers.connect(self.tela_conexao.adicionarApelidoDesconectado)
+        self.receiver.deleteAllConnectedUsers.connect(self.tela_conexao.apagarCaixaConexao)
 
 
 

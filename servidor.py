@@ -33,17 +33,30 @@ class Server():
         try:
             index = self.clients.index(client)
             self.clients.remove(client)
-            self.apelidos.remove(self.apelidos[index])
+            #self.apelidos.remove(self.apelidos[index])
+            self.removerApelido(index)
             client.close()
         except:
             pass
+    
+    def removerApelido(self, index):
+        try:
+            if(self.apelidos[index]):
+                ap = self.apelidos[index]
+                self.apelidos.remove(self.apelidos[index])
+                self.broadcast(('!Ap-conectados,'+'*'.join(map(str, self.apelidos))).encode('utf-8'))
+                time.sleep(0.05)
+                self.broadcast(('!Ap-desconectado,{}'.format(ap)).encode('utf-8'))
+        except:
+            print(f'[Except: removerApelido({index})')
 
     def adicionarApelido(self, client, apelido):
         try:
             index = self.clients.index(client)
-            self.apelidos.append(apelido)
-            self.apelidos[index] = apelido
-            self.broadcast(('!Ap-conectados,'+'-'.join(map(str, self.apelidos))).encode('utf-8'))
+            #self.apelidos.append(apelido)
+            #self.apelidos[index] = apelido
+            self.apelidos.insert(index, apelido)
+            self.broadcast(('!Ap-conectados,'+'*'.join(map(str, self.apelidos))).encode('utf-8'))
         except:
             print("[Except: adicionarApelido]")
 
