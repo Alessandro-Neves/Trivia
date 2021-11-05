@@ -36,7 +36,7 @@ class WorkerConectados(QObject):
     updateConnectedUsers = pyqtSignal(str)
     addDesconectedUsers = pyqtSignal(str)
     deleteAllConnectedUsers = pyqtSignal()
-    atualizarTimerConexao = pyqtSignal(int)
+    atualizarTimerConexao = pyqtSignal(int, int)
     
     global encerrar
 
@@ -62,10 +62,8 @@ class WorkerConectados(QObject):
                 elif(message_tuple[0] == '!mudar-tela'):
                     #self.view.switchPage(int(message_tuple[1]))
                     self.switchPage.emit(int(message_tuple[1]))
-                # elif(message_tuple[0] == '!iniciar'):
-                #     pass
-                # elif(message_tuple[0] == '!iniciar-time-bar'):
-                #     self.view.tela_conexao.timeBarControl()
+                elif(message_tuple[0] == '!iniciar-partida'):
+                    self.switchPage.emit(2)
                 # elif(message_tuple[0] == '!definir-tema'):
                 #     self.view.tela_jogo.definirTema()
                 elif(message_tuple[0] == '!apelido-ja-existe'):
@@ -87,7 +85,7 @@ class WorkerConectados(QObject):
                     self.addDesconectedUsers.emit(textAp)
                 elif(message_tuple[0]=='!print'):    print(message_tuple[1])
                 elif(message_tuple[0]=='!atualizarTimerConexao'):
-                    self.atualizarTimerConexao.emit(int(message_tuple[1]))
+                    self.atualizarTimerConexao.emit(int(message_tuple[1]), int(message_tuple[2]))
                 elif(message_tuple[0]!=''): print("server: "+ str(message_tuple))
 
             except:
@@ -143,6 +141,12 @@ class TelaConexao(QWidget):
         #Componentes bloco 1
         self.apelido_input = QLineEdit()
         self.servidor_input = QLineEdit()
+        self.apelido_input.setStyleSheet("QLineEdit"
+                                    "{"
+                                        "color: #1320d3;"
+                                        "background-color: #ffffff;"
+                                    "}")
+
         self.bloco1.addWidget(QLabel('Apelido'))
         self.bloco1.addWidget(self.apelido_input)
         self.bloco1.addWidget(QLabel('Servidor (IP)'))
@@ -159,7 +163,11 @@ class TelaConexao(QWidget):
         self.bloco2.addWidget(self.conectar_botao)
         self.bloco2.addWidget(self.status_conexao)
 
-        self.conectar_botao.setStyleSheet("QPushButton ""{""background-color: #1320d3;""}")
+        self.conectar_botao.setStyleSheet("QPushButton "
+                                                "{"
+                                                    "background-color: #1320d3;"
+                                                    "color: #ffffff;"
+                                                "}")
 
         #Bloco 3"
         self.bloco3 = QVBoxLayout()
@@ -168,6 +176,10 @@ class TelaConexao(QWidget):
         self.caixa_conexao.setReadOnly(True)
         self.bloco3.addWidget(QLabel('Aguardando jogadores'))
         self.btn_iniciar = QPushButton('Iniciar Partida')
+        self.btn_iniciar.setStyleSheet("QPushButton ""{"
+                                            "background-color: green;"
+                                            "color: #ffffff;"
+                                        "}")
         self.btn_iniciar.clicked.connect(lambda: self.main.iniciarPartida())
         self.bloco3.addWidget(self.caixa_conexao)
         self.bloco3.addWidget(self.btn_iniciar)
@@ -198,6 +210,8 @@ class TelaConexao(QWidget):
         self.layout.addLayout(self.bloco3)
         self.layout.addLayout(self.bloco4)
 
+        #self.setStyleSheet("background-color: #ffffff;")
+
     def setarApelidosConectados(self, msg):
         #self.caixa_conexao.setText(msg)
         self.caixa_conexao.append(msg)
@@ -208,9 +222,10 @@ class TelaConexao(QWidget):
         #self.caixa_conexao.insertHtml(msg)
         self.caixa_conexao.append(msg)
 
-    def timeBarSetter(self, valor):
+    def timeBarSetter(self, valor, seconds):
+        self.btn_iniciar.setEnabled(False)
         self.time_bar.setValue(valor)
-        self.time_bar.setFormat(f"{str(valor)} segundos") 
+        self.time_bar.setFormat(f"{str(seconds)} segundos") 
         self.time_bar.setAlignment(Qt.AlignCenter)
 
     def escolherOutroApelido(self):
@@ -223,6 +238,63 @@ class TelaConexao(QWidget):
         self.caixa_conexao.setText('')
 
 
+class TelaDicaEspera():
+    pass
+
+class TelaDicaDefine(QWidget):
+    def __init__(self, main):
+        super().__init__()
+        self.main = main
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        self.setWindowTitle('Sua vez')
+
+        self.blocoA = QVBoxLayout()
+        self.blocoA.addWidget(QLabel('Tema'))
+        self.temaInput = QLineEdit()
+        self.blocoA.addWidget(self.temaInput)
+        self.blocoA.addWidget(QLabel('Dica'))
+        self.dicaInput = QLineEdit()
+        self.blocoA.addWidget(self.dicaInput)
+        self.blocoA.addWidget(QLabel('Resposta'))
+        self.respostaInput = QLineEdit()
+        self.respostaInput.setStyleSheet("QLineEdit"
+                                    "{"
+                                    "margin-bottom: 80px;"
+                                    "}")
+        self.blocoA.addWidget(self.respostaInput)
+
+        self.blocoB = QVBoxLayout()
+        self.iniciarRodadaBtn = QPushButton('Iniciar Rodada')
+        self.iniciarRodadaBtn.setStyleSheet("QPushButton"
+                                    "{"
+                                        "color: #ffffff;"
+                                        "text-align: center;"
+                                        #"background-color: #2faa16;"
+                                        "background-color: green;"
+                                        #"heigth: 40px;"
+                                    "}")
+        self.blocoB.addWidget(self.iniciarRodadaBtn)
+        self.timer = QProgressBar()
+        self.timer.setValue(100)
+        self.timer.setStyleSheet("QProgressBar"
+                                    "{"
+                                        "color: #ffffff;"
+                                        "text-align: center;"
+                                        "background-color: #b2b2b6;"
+                                        #"heigth: 40px;"
+                                    "}"
+                                    "QProgressBar::chunk"
+                                    "{"
+                                        "background-color: #1320d3"
+                                    "}"
+                                    )
+        self.blocoB.addWidget(self.timer)
+        self.blocoB.setContentsMargins(0, 150, 0, 5)
+
+        self.layout.addLayout(self.blocoA)
+        self.layout.addLayout(self.blocoB)
+
 class TelaJogo(QWidget):
     def __init__(self, main):
         super().__init__()
@@ -230,23 +302,52 @@ class TelaJogo(QWidget):
         self.layout = QHBoxLayout()
         self.setLayout(self.layout)
         
+        
         self.divEsquerda = QVBoxLayout()
         self.divDireita = QVBoxLayout()
 
         self.bloco1 = QVBoxLayout()
-        self.bloco1.addWidget(QLabel('Jogadores'))
+        self.LabelJogadores = QLabel('Jogadores')
+        self.LabelJogadores.setAlignment(QtCore.Qt.AlignCenter)
+        self.bloco1.addWidget(self.LabelJogadores)
         self.caixaJogadores = QTextEdit()
         self.bloco1.addWidget(self.caixaJogadores)
 
         self.bloco2 = QVBoxLayout()
         self.dicaLabel = QLabel('Texto com x letras')
+        self.dicaLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.pistaCaixa = QTextEdit()
         self.bloco2.addWidget(self.dicaLabel)
         self.bloco2.addWidget(self.pistaCaixa)
 
         self.bloco3 = QVBoxLayout()
-        self.bloco3.addWidget(QLabel("Log"))
+        self.LabelLog = QLabel("Log")
+        self.LabelLog.setAlignment(QtCore.Qt.AlignCenter)
+        self.bloco3.addWidget(self.LabelLog)
         self.caixaResposta = QTextEdit()
+        self.caixaResposta.setStyleSheet("QScrollBar:vertical"
+                                    "{"
+                                        "background: #ffffff;"
+                                        "color: #ffffff;"
+                                        "border: 0px solid #ffffff;"
+                                    "}"
+                                    "QScrollBar::handle:vertical"
+                                    "{"
+                                        "background: #7ba4da;"
+                                        "border: 1px solid #7ba4da;"
+                                        "border-radius: 6px;"
+                                    "}"
+                                    "QScrollBar::add-line:vertical"
+                                    "{"
+                                        "width: 0px;"
+                                        "height: 0px;"
+                                    "}"
+                                    "QScrollBar::sub-line:vertical"
+                                    "{"
+                                        "width: 0px;"
+                                        "height: 0px;"
+                                    "}"
+                                    )
         self.bloco3.addWidget(self.caixaResposta)
 
         self.bloco4 = QVBoxLayout()
@@ -278,6 +379,23 @@ class TelaJogo(QWidget):
 
         self.layout.addLayout(self.divEsquerda)
         self.layout.addLayout(self.divDireita)
+        self.setStyleSheet("QLabel"
+                                    "{"
+                                        "color: #1320d3;"
+                                        "background-color: #ffffff;"
+                                        "border: 1px solid gray;"
+                                        "border-radius: 5px;"
+                                        "padding: 2px;"
+                                        "margin-bottom: 0px;"
+                                        "text-align: center;"
+                                    "}"
+                            "QTextEdit"
+                                    "{"
+                                        "border-radius: 5px;"
+                                        "margin-top: 0px;"
+                                        "border: 1px solid gray;"
+                                    "}"
+                                    )
 
 
     def enviarResposta(self):
@@ -285,51 +403,51 @@ class TelaJogo(QWidget):
         self.tentativaRespostaInput.setText('')
         self.main.client.send(f"!resposta,{resposta}".encode('utf-8'))
 
-    def definirTema(self):
-        dlg = QDialog()
-        dlg.setGeometry(20, 80, 400, 500)
-        dlgLayout = QVBoxLayout()
-        dlg.setLayout(dlgLayout)
-        dlg.setWindowTitle('Sua vez')
+    # def definirTema(self):
+    #     dlg = QDialog()
+    #     dlg.setGeometry(20, 80, 400, 500)
+    #     dlgLayout = QVBoxLayout()
+    #     dlg.setLayout(dlgLayout)
+    #     dlg.setWindowTitle('Sua vez')
 
-        blocoA = QVBoxLayout()
-        blocoA.addWidget(QLabel('Tema'))
-        temaInput = QLineEdit()
-        blocoA.addWidget(temaInput)
-        blocoA.addWidget(QLabel('Dica'))
-        dicaInput = QLineEdit()
-        blocoA.addWidget(dicaInput)
-        blocoA.addWidget(QLabel('Resposta'))
-        respostaInput = QLineEdit()
-        respostaInput.setStyleSheet("QLineEdit"
-                                    "{"
-                                    "margin-bottom: 80px;"
-                                    "}")
-        blocoA.addWidget(respostaInput)
+    #     blocoA = QVBoxLayout()
+    #     blocoA.addWidget(QLabel('Tema'))
+    #     temaInput = QLineEdit()
+    #     blocoA.addWidget(temaInput)
+    #     blocoA.addWidget(QLabel('Dica'))
+    #     dicaInput = QLineEdit()
+    #     blocoA.addWidget(dicaInput)
+    #     blocoA.addWidget(QLabel('Resposta'))
+    #     respostaInput = QLineEdit()
+    #     respostaInput.setStyleSheet("QLineEdit"
+    #                                 "{"
+    #                                 "margin-bottom: 80px;"
+    #                                 "}")
+    #     blocoA.addWidget(respostaInput)
 
-        blocoB = QVBoxLayout()
-        iniciarRodadaBtn = QPushButton('Iniciar Rodada')
-        blocoB.addWidget(iniciarRodadaBtn)
-        timer = QProgressBar()
-        timer.setValue(100)
-        timer.setStyleSheet("QProgressBar"
-                                    "{"
-                                        "color: #ffffff;"
-                                        "text-align: center;"
-                                        "background-color: #b2b2b6;"
-                                        #"heigth: 40px;"
-                                    "}"
-                                    "QProgressBar::chunk"
-                                    "{"
-                                        "background-color: #1320d3"
-                                    "}"
-                                    )
-        blocoB.addWidget(timer)
+    #     blocoB = QVBoxLayout()
+    #     iniciarRodadaBtn = QPushButton('Iniciar Rodada')
+    #     blocoB.addWidget(iniciarRodadaBtn)
+    #     timer = QProgressBar()
+    #     timer.setValue(100)
+    #     timer.setStyleSheet("QProgressBar"
+    #                                 "{"
+    #                                     "color: #ffffff;"
+    #                                     "text-align: center;"
+    #                                     "background-color: #b2b2b6;"
+    #                                     #"heigth: 40px;"
+    #                                 "}"
+    #                                 "QProgressBar::chunk"
+    #                                 "{"
+    #                                     "background-color: #1320d3"
+    #                                 "}"
+    #                                 )
+    #     blocoB.addWidget(timer)
 
-        dlgLayout.addLayout(blocoA)
-        dlgLayout.addLayout(blocoB)
+    #     dlgLayout.addLayout(blocoA)
+    #     dlgLayout.addLayout(blocoB)
 
-        dlg.exec_()
+    #     dlg.exec_()
 
 class Tela(QWidget):
     def __init__(self):
@@ -350,6 +468,7 @@ class Tela(QWidget):
         self.height = 500
         self.setGeometry(self.left, self.top, self.width, self.height)
 
+        self.setStyleSheet("background-color: #ffffff;")
         
         self.show()
     
@@ -381,6 +500,7 @@ class Tela(QWidget):
             self.client.send(f"!definir-apelido,{self.apelido}".encode('utf-8'))
             self.tela_conexao.conectar_botao.setEnabled(False)
             self.tela_conexao.apelido_input.setEnabled(False)
+            #self.tela_conexao.apelido_input.setReadOnly(True)
             self.tela_conexao.servidor_input.setEnabled(False)
         except:
             print("[Exception]: Tela().conectar")
@@ -396,10 +516,12 @@ class Tela(QWidget):
         self.tela_inicial = TelaInicial(self)
         self.tela_conexao = TelaConexao(self)
         self.tela_jogo = TelaJogo(self)
+        self.tela_dica_define = TelaDicaDefine(self)
 
         self.stackedLayout.addWidget(self.tela_inicial)
         self.stackedLayout.addWidget(self.tela_conexao)
         self.stackedLayout.addWidget(self.tela_jogo)
+        self.stackedLayout.addWidget(self.tela_dica_define)
         
     def iniciar(self):
         #startar controlador geral
@@ -407,6 +529,12 @@ class Tela(QWidget):
 
     def switchPage(self, page_index):
         self.stackedLayout.setCurrentIndex(page_index)
+        if(page_index==2):
+            self.setFixedWidth(600)
+            self.setFixedHeight(500)
+        else:
+            self.setFixedWidth(self.width)
+            self.setFixedHeight(self.height)
 
     def iniciarPartida(self):
         print("INICIANDO PARTIDA")
@@ -497,6 +625,7 @@ class gameController():
     def iniciar(self):
         global encerrar
         encerrar = False
+        #self.app.setStyle('Breeze')
         self.app.exec()
         encerrar = True
         print("Saindo...")

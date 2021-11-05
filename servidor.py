@@ -3,7 +3,7 @@ import threading
 import sys
 import time
 import asyncio
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
+#from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 host = '127.0.0.1'
 port = 55555
@@ -11,21 +11,22 @@ port = 55555
 
 
 
-class iniciarTempoConexao(QObject):
-    finished = pyqtSignal()
-    #progress = pyqtSignal(int)
-    progress = pyqtSignal()
-    tempoEsgotado = pyqtSignal()
+# class iniciarTempoConexao(QObject):
+#     finished = pyqtSignal()
+#     #progress = pyqtSignal(int)
+#     progress = pyqtSignal()
+#     tempoEsgotado = pyqtSignal()
     
-    global encerrar
+#     global encerrar
 
-    def run(self):
-        for i in range(100, 0, -1):
-            time.sleep(1)
-            print(i)
-            self.progress.emit(i)
-            #self.progress.emit(i)
-        self.finished.emit() #à definir: função a ser chamada após o fim do tempo -> inicioDoJogo ou Restart
+#     def run(self):
+#         print('[iniciarTempoConexao!]')
+#         for i in range(30, -1, -1):
+#             time.sleep(1)
+#             print(i)
+#             self.progress.emit(i)
+#             #self.progress.emit(i)
+#         self.finished.emit() #à definir: função a ser chamada após o fim do tempo -> inicioDoJogo ou Restart
 
 
 
@@ -116,15 +117,18 @@ class Server():
                     break
 
     def atualizarTimeConexao(self):
-        for i in range(100, 0, -1):
+        t = 30
+        for i in range(t, -1, -1):
             time.sleep(1)
-            self.broadcast('!atualizarTimerConexao,{}'.format(i).encode('utf-8'))
+            value = (i*100)/t
+            self.broadcast('!atualizarTimerConexao,{},{}'.format(int(value), i).encode('utf-8'))
 
     def iniciarPartida(self):
         threadTimer = threading.Thread(target=self.atualizarTimeConexao, args=())
         threadTimer.start()# Instanciando uma thread em paralelo à principal -> QAplication.
         threadTimer.join()
-        print('AAAAABBBBBCCCCC')
+        self.broadcast('!iniciar-partida'.encode('utf-8'))
+        
 
 
 
