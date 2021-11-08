@@ -34,6 +34,7 @@ port = 55555
 
 class Server():
     def __init__(self, host, port):
+        self.resposta = "null"
         self.host = host
         self.port = port
         self.clients = []
@@ -109,6 +110,12 @@ class Server():
                                 print("cliente e apelido add: ", self.apelidos)
                         elif(message_tuple[0]=='!iniciar-partida'):
                             self.iniciarPartida()
+                        elif(message_tuple[0]=='!resposta'):
+                            if(message_tuple[1] == self.resposta):
+                                pass
+                            else:
+                                self.broadcast('!print-log,{},{}'.format(message_tuple[1], "null").encode('utf-8'))
+                        
                         elif(message_tuple[0]!=''): print("cliente: "+ str(message_tuple))
 
                     

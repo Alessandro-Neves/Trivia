@@ -37,6 +37,7 @@ class WorkerConectados(QObject):
     addDesconectedUsers = pyqtSignal(str)
     deleteAllConnectedUsers = pyqtSignal()
     atualizarTimerConexao = pyqtSignal(int, int)
+    printLog = pyqtSignal(str, str)
     
     global encerrar
 
@@ -86,10 +87,15 @@ class WorkerConectados(QObject):
                 elif(message_tuple[0]=='!print'):    print(message_tuple[1])
                 elif(message_tuple[0]=='!atualizarTimerConexao'):
                     self.atualizarTimerConexao.emit(int(message_tuple[1]), int(message_tuple[2]))
-                elif(message_tuple[0]!=''): print("server: "+ str(message_tuple))
+                elif(message_tuple[0]=='!print-log'):
+                    print("[receiver - print-log]\n")
+                    print(message_tuple)
+                    self.printLog.emit(message_tuple[1], message_tuple[2])
+
+                else: print("server: "+ str(message_tuple))
 
             except:
-                print("An error occured!")
+                print("[Exception: WokerConectados - receiver]")
                 self.client.close()
                 break
         self.client.close()
@@ -333,8 +339,10 @@ class TelaJogo(QWidget):
                                     "}"
                                     "QScrollBar::handle:vertical"
                                     "{"
-                                        "background: #7ba4da;"
-                                        "border: 1px solid #7ba4da;"
+                                        # "background: #7ba4da;"
+                                        # "border: 1px solid #7ba4da;"
+                                        "background: #ffffff;"
+                                        "border: 1px solid gray;"
                                         "border-radius: 6px;"
                                     "}"
                                     "QScrollBar::add-line:vertical"
@@ -401,7 +409,17 @@ class TelaJogo(QWidget):
     def enviarResposta(self):
         resposta = self.tentativaRespostaInput.text()
         self.tentativaRespostaInput.setText('')
-        self.main.client.send(f"!resposta,{resposta}".encode('utf-8'))
+        self.main.client.send("!resposta,{}".format(resposta).encode('utf-8'))
+
+    def printLog(self, resposta, ap):
+        print("[print-log]\n")
+        if(resposta == 'acertou'):
+            if(ap == self.main.apelido == ap):
+                self.caixaResposta.append("<span style=\"color: green;\">Você acertou!</span>")
+            else:   self.caixaResposta.append("<span style=\"color: green;\">{} acertou!</span>".format(ap))
+        else:
+            self.caixaResposta.append("<span style=\"color: gray;\">{}</span>".format(resposta))
+
 
     # def definirTema(self):
     #     dlg = QDialog()
@@ -556,6 +574,7 @@ class Tela(QWidget):
         self.receiver.addDesconectedUsers.connect(self.tela_conexao.adicionarApelidoDesconectado)
         self.receiver.deleteAllConnectedUsers.connect(self.tela_conexao.apagarCaixaConexao)
         self.receiver.atualizarTimerConexao.connect(self.tela_conexao.timeBarSetter)
+        self.receiver.printLog.connect(self.tela_jogo.printLog)
 
 
 
