@@ -171,7 +171,7 @@ class Server():
                 self.clients.append(client)
 
                 client.send('!conectado'.encode('utf-8'))
-                time.sleep(0.01)
+                time.sleep(0.015)
 
                 threadEscuta = threading.Thread(target=self.escutar, args=(client,))
                 

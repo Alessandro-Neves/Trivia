@@ -27,7 +27,7 @@ encerrar = False
 port = ''
 host = ''
 
-class WorkerConectados(QObject):
+class Receptor(QObject):
     finished = pyqtSignal()
     #progress = pyqtSignal(int)
     progress = pyqtSignal()
@@ -38,6 +38,7 @@ class WorkerConectados(QObject):
     deleteAllConnectedUsers = pyqtSignal()
     atualizarTimerConexao = pyqtSignal(int, int)
     printLog = pyqtSignal(str, str)
+    definirTema = pyqtSignal(str)
     
     global encerrar
 
@@ -65,8 +66,8 @@ class WorkerConectados(QObject):
                     self.switchPage.emit(int(message_tuple[1]))
                 elif(message_tuple[0] == '!iniciar-partida'):
                     self.switchPage.emit(2)
-                # elif(message_tuple[0] == '!definir-tema'):
-                #     self.view.tela_jogo.definirTema()
+                elif(message_tuple[0] == '!definir-tema'):
+                    self.definirTema.emit(message_tuple[1])
                 elif(message_tuple[0] == '!apelido-ja-existe'):
                     #self.view.tela_conexao.escolherOutroApelido()
                     self.chooseAnotherNickname.emit()
@@ -244,8 +245,32 @@ class TelaConexao(QWidget):
         self.caixa_conexao.setText('')
 
 
-class TelaDicaEspera():
-    pass
+class TelaDicaEspera(QWidget):
+    def __init__(self, main):
+        super().__init__()
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        self.main = main
+        self.bloco1 = QVBoxLayout()
+        self.label = QLabel('Definindo tema ...')
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.bloco1.setAlignment(Qt.AlignCenter) 
+        #self.start_button.clicked.connect(self.main.iniciar)
+        self.bloco1.addWidget(self.label)
+        self.layout.addLayout(self.bloco1)
+
+        #estilos
+        self.label.setStyleSheet("QLabel"
+                                        "{"
+                                            "background-color: #2faa16;"
+                                            "color: #ffffff;"
+                                            "min-height: 80px;"
+                                            "min-width: 300px;"
+                                            "border-radius: 20px;"
+                                            "font-size: 30px;"
+                                            "text-align: center;"
+                                            
+                                        "}")
 
 class TelaDicaDefine(QWidget):
     def __init__(self, main):
@@ -295,6 +320,7 @@ class TelaDicaDefine(QWidget):
                                         "background-color: #1320d3"
                                     "}"
                                     )
+        self.timer.setFormat('60 segundos')
         self.blocoB.addWidget(self.timer)
         self.blocoB.setContentsMargins(0, 150, 0, 5)
 
@@ -317,12 +343,14 @@ class TelaJogo(QWidget):
         self.LabelJogadores.setAlignment(QtCore.Qt.AlignCenter)
         self.bloco1.addWidget(self.LabelJogadores)
         self.caixaJogadores = QTextEdit()
+        self.caixaJogadores.setReadOnly(True)
         self.bloco1.addWidget(self.caixaJogadores)
 
         self.bloco2 = QVBoxLayout()
         self.dicaLabel = QLabel('Texto com x letras')
         self.dicaLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.pistaCaixa = QTextEdit()
+        self.pistaCaixa.setReadOnly(True)
         self.bloco2.addWidget(self.dicaLabel)
         self.bloco2.addWidget(self.pistaCaixa)
 
@@ -331,6 +359,7 @@ class TelaJogo(QWidget):
         self.LabelLog.setAlignment(QtCore.Qt.AlignCenter)
         self.bloco3.addWidget(self.LabelLog)
         self.caixaResposta = QTextEdit()
+        self.caixaResposta.setReadOnly(True)
         self.caixaResposta.setStyleSheet("QScrollBar:vertical"
                                     "{"
                                         "background: #ffffff;"
@@ -374,7 +403,7 @@ class TelaJogo(QWidget):
                                     "}"
                                     )
 
-        self.tempo.setFormat('') 
+        self.tempo.setFormat('240 s') 
         self.bloco4.addWidget(self.tempo)
         self.tentativaRespostaInput = QLineEdit()
         self.tentativaRespostaInput.returnPressed.connect(lambda: self.enviarResposta())
@@ -535,11 +564,13 @@ class Tela(QWidget):
         self.tela_conexao = TelaConexao(self)
         self.tela_jogo = TelaJogo(self)
         self.tela_dica_define = TelaDicaDefine(self)
+        self.tela_dica_espera = TelaDicaEspera(self)
 
         self.stackedLayout.addWidget(self.tela_inicial)
         self.stackedLayout.addWidget(self.tela_conexao)
         self.stackedLayout.addWidget(self.tela_jogo)
         self.stackedLayout.addWidget(self.tela_dica_define)
+        self.stackedLayout.addWidget(self.tela_dica_espera)
         
     def iniciar(self):
         #startar controlador geral
@@ -548,9 +579,15 @@ class Tela(QWidget):
     def switchPage(self, page_index):
         self.stackedLayout.setCurrentIndex(page_index)
         if(page_index==2):
+            self.setWindowTitle("Trivia Game !")
             self.setFixedWidth(600)
             self.setFixedHeight(500)
+        elif(page_index==3):
+            self.setFixedWidth(self.width)
+            self.setFixedHeight(self.height)
+            self.setWindowTitle("Sua vez !")
         else:
+            self.setWindowTitle("Trivia Game !")
             self.setFixedWidth(self.width)
             self.setFixedHeight(self.height)
 
@@ -560,7 +597,7 @@ class Tela(QWidget):
 
     def mountReceiver(self):
         self.thread = QThread() # Instanciando uma thread em paralelo à principal -> QAplication.exec
-        self.receiver = WorkerConectados()  # Instanciando um "trabalhador" objeto para trabalhar em outra thread
+        self.receiver = Receptor()  # Instanciando um "trabalhador" objeto para trabalhar em outra thread
         self.receiver.moveToThread(self.thread)   # Movendo o "trabalhador" para a nova thread
             # Connectado signals e slots
         self.thread.started.connect(self.receiver.run)
@@ -575,7 +612,13 @@ class Tela(QWidget):
         self.receiver.deleteAllConnectedUsers.connect(self.tela_conexao.apagarCaixaConexao)
         self.receiver.atualizarTimerConexao.connect(self.tela_conexao.timeBarSetter)
         self.receiver.printLog.connect(self.tela_jogo.printLog)
+        self.receiver.definirTema.connect(self.definirTema)
 
+
+    def definirTema(self, ap):
+        if(ap == self.apelido):
+            self.switchPage(3)
+        else: self.switchPage(4)
 
 
 
