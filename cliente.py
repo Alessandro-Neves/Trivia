@@ -1,7 +1,5 @@
 import socket
-import threading
 import sys
-import time
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt 
 from PyQt5.QtGui import * 
@@ -10,15 +8,12 @@ from PyQt5.QtWidgets import (
     QStackedLayout,
     QVBoxLayout,
     QHBoxLayout,
-    QComboBox,
-    QFormLayout,
     QLineEdit,
     QWidget,
     QPushButton,
     QLabel,
     QTextEdit,
     QProgressBar,
-    QDialog
 )
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
