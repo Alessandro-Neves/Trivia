@@ -1,5 +1,6 @@
 import socket
 import sys
+from threading import TIMEOUT_MAX
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt 
 from PyQt5.QtGui import * 
@@ -36,6 +37,7 @@ class Receptor(QObject):
     definirTema = pyqtSignal(str)
     apAceito = pyqtSignal()
     atualizarTimerDefinirTema = pyqtSignal(int, int)
+    iniciarPartida = pyqtSignal(str)
     
     global encerrar
 
@@ -59,7 +61,7 @@ class Receptor(QObject):
                 elif(message_tuple[0] == '!mudar-tela'):
                     self.switchPage.emit(int(message_tuple[1]))
                 elif(message_tuple[0] == '!iniciar-partida'):
-                    self.switchPage.emit(2)
+                    self.iniciarPartida.emit(message_tuple[1])
                 elif(message_tuple[0] == '!definir-tema'):
                     self.definirTema.emit(message_tuple[1])
                 elif(message_tuple[0] == '!apelido-ja-existe'):
@@ -178,7 +180,7 @@ class TelaConexao(QWidget):
                                             "background-color: green;"
                                             "color: #ffffff;"
                                         "}")
-        self.btn_iniciar.clicked.connect(lambda: self.main.iniciarPartida())
+        self.btn_iniciar.clicked.connect(lambda: self.main.iniciarGame())
         self.bloco3.addWidget(self.caixa_conexao)
         self.bloco3.addWidget(self.btn_iniciar)
 
@@ -323,8 +325,12 @@ class TelaDicaDefine(QWidget):
         self.layout.addLayout(self.blocoB)
 
     def iniciarPartida(self):
-        self.main.client.send("!tema-escolhido".encode('utf-8'))
-        
+        tema = self.temaInput.text()
+        dica = self.dicaInput.text()
+        resposta = self.respostaInput.text()
+
+        self.main.client.send("!tema-escolhido,{},{},{}".format(tema, dica, resposta).encode('utf-8'))
+
     def timeBarSetter(self, valor, seconds):
         self.timer.setValue(valor)
         self.timer.setFormat(f"{str(seconds)} segundos") 
@@ -588,7 +594,7 @@ class Tela(QWidget):
             self.setFixedWidth(self.width)
             self.setFixedHeight(self.height)
 
-    def iniciarPartida(self):
+    def iniciarGame(self):
         print("INICIANDO PARTIDA")
         self.client.send(f"!iniciar-partida".encode('utf-8'))
 
@@ -612,12 +618,19 @@ class Tela(QWidget):
         self.receptor.definirTema.connect(self.definirTema)
         self.receptor.apAceito.connect(lambda: self.tela_conexao.status_conexao.setText('<span style=\"color: green;\">Servidor conectado</span>'))
         self.receptor.atualizarTimerDefinirTema.connect(self.tela_dica_define.timeBarSetter)
+        self.receptor.iniciarPartida.connect(self.iniciarPartida)
 
     def definirTema(self, ap):
         if(ap == self.apelido):
             self.switchPage(3)
         else: self.switchPage(4)
 
+    def iniciarPartida(self, ap):
+        if(ap == self.apelido):
+            self.tela_jogo.tentativaRespostaInput.setEnabled(False)
+            self.switchPage(2)
+        else:
+            self.switchPage(2)
 
 
 class game():

@@ -15,6 +15,8 @@ class Server():
     def __init__(self, host, port):
         self.partidaEmAndamento = False
         self.resposta = "null"
+        self.dica = "null"
+        self.tema = "null"
         self.ultimoMestre = "null"
         self.countPartidas = 0
         self.host = host
@@ -99,7 +101,7 @@ class Server():
                             else:
                                 self.broadcast('!print-log,{},{}'.format(message_tuple[1], "null").encode('utf-8'))
                         elif(message_tuple[0]=='!tema-escolhido'):
-                            print('[[[[*]]]]')
+                            self.temaEscolhido(message_tuple[1], message_tuple[2], message_tuple[3])
                         
                         elif(message_tuple[0]!=''): print("cliente: "+ str(message_tuple))
 
@@ -147,6 +149,15 @@ class Server():
             self.broadcast('!atualizarTimerDefinirTema,{},{}'.format(int(value), i).encode('utf-8'))
             time.sleep(1)
             
+    def temaEscolhido(self, tema, dica, resposta):
+        self.partidaEmAndamento = True
+        self.tema = tema
+        self.dica = dica
+        self.resposta = resposta
+        
+        print(f"tema: {self.tema},{self.dica},{self.resposta}\n")
+        self.broadcast('!iniciar-partida,{}'.format(self.ultimoMestre).encode('utf-8'))
+
 
     def entrada(self):
         global estaBloqueado
