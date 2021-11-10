@@ -2,6 +2,9 @@ import socket
 import threading
 import sys
 import time
+from random import randint
+#from random import *
+
 
 #from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
@@ -12,6 +15,7 @@ class Server():
     def __init__(self, host, port):
         self.partidaEmAndamento = False
         self.resposta = "null"
+        self.ultimoMestre = "null"
         self.host = host
         self.port = port
         self.clients = []
@@ -102,7 +106,7 @@ class Server():
                     break
 
     def atualizarTimeConexao(self):
-        t = 30
+        t = 10
         for i in range(t, -1, -1):
             time.sleep(1)
             value = (i*100)/t
@@ -113,7 +117,20 @@ class Server():
         threadTimer.start()# Instanciando uma thread em paralelo à principal -> QAplication.
         threadTimer.join()
         #self.broadcast('!iniciar-partida'.encode('utf-8'))
-        self.broadcast('!definir-tema,aleon'.encode('utf-8'))
+        
+        self.iniciarPartida()
+
+    def iniciarPartida(self):
+        self.partidaEmAndamento = False
+
+        index = randint(0,len(self.apelidos)-1)
+        while(self.apelidos[index] == self.ultimoMestre):
+            index = randint(0,len(self.apelidos)-1)
+        
+        self.ultimoMestre = self.apelidos[index]
+        self.broadcast('!definir-tema,{}'.format(self.apelidos[index]).encode('utf-8'))
+
+        print(len(self.apelidos),index)
         
 
     def entrada(self):
