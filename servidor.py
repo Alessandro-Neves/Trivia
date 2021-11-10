@@ -16,6 +16,7 @@ class Server():
         self.partidaEmAndamento = False
         self.resposta = "null"
         self.ultimoMestre = "null"
+        self.countPartidas = 0
         self.host = host
         self.port = port
         self.clients = []
@@ -97,6 +98,8 @@ class Server():
                                 pass
                             else:
                                 self.broadcast('!print-log,{},{}'.format(message_tuple[1], "null").encode('utf-8'))
+                        elif(message_tuple[0]=='!tema-escolhido'):
+                            print('[[[[*]]]]')
                         
                         elif(message_tuple[0]!=''): print("cliente: "+ str(message_tuple))
 
@@ -107,10 +110,11 @@ class Server():
 
     def atualizarTimeConexao(self):
         t = 10
-        for i in range(t, -1, -1):
-            time.sleep(1)
+        for i in range(t, 0, -1):
             value = (i*100)/t
             self.broadcast('!atualizarTimerConexao,{},{}'.format(int(value), i).encode('utf-8'))
+            time.sleep(1)
+            
 
     def iniciarJogo(self):
         threadTimer = threading.Thread(target=self.atualizarTimeConexao, args=())
@@ -130,8 +134,19 @@ class Server():
         self.ultimoMestre = self.apelidos[index]
         self.broadcast('!definir-tema,{}'.format(self.apelidos[index]).encode('utf-8'))
 
-        print(len(self.apelidos),index)
+        threadTimerDefinir = threading.Thread(target=self.atualizarTimeDefinirTema, args=())
+        threadTimerDefinir.start()# Instanciando uma thread em paralelo à principal -> QAplication.
+        threadTimerDefinir.join()
+        if(self.partidaEmAndamento == False): self.iniciarPartida()
         
+    def atualizarTimeDefinirTema(self):
+        t = 15
+        for i in range(t, 0, -1):
+            if(self.partidaEmAndamento == True): break
+            value = (i*100)/t
+            self.broadcast('!atualizarTimerDefinirTema,{},{}'.format(int(value), i).encode('utf-8'))
+            time.sleep(1)
+            
 
     def entrada(self):
         global estaBloqueado

@@ -35,6 +35,7 @@ class Receptor(QObject):
     printLog = pyqtSignal(str, str)
     definirTema = pyqtSignal(str)
     apAceito = pyqtSignal()
+    atualizarTimerDefinirTema = pyqtSignal(int, int)
     
     global encerrar
 
@@ -78,6 +79,9 @@ class Receptor(QObject):
                 elif(message_tuple[0]=='!print'):    print(message_tuple[1])
                 elif(message_tuple[0]=='!atualizarTimerConexao'):
                     self.atualizarTimerConexao.emit(int(message_tuple[1]), int(message_tuple[2]))
+                
+                elif(message_tuple[0]=='!atualizarTimerDefinirTema'):
+                    self.atualizarTimerDefinirTema.emit(int(message_tuple[1]), int(message_tuple[2]))
                 elif(message_tuple[0]=='!print-log'):
                     print("[receiver - print-log]\n")
                     print(message_tuple)
@@ -287,6 +291,7 @@ class TelaDicaDefine(QWidget):
 
         self.blocoB = QVBoxLayout()
         self.iniciarRodadaBtn = QPushButton('Iniciar Rodada')
+        self.iniciarRodadaBtn.clicked.connect(self.iniciarPartida)
         self.iniciarRodadaBtn.setStyleSheet("QPushButton"
                                     "{"
                                         "color: #ffffff;"
@@ -310,12 +315,20 @@ class TelaDicaDefine(QWidget):
                                         "background-color: #1320d3"
                                     "}"
                                     )
-        self.timer.setFormat('60 segundos')
+        self.timer.setFormat('')
         self.blocoB.addWidget(self.timer)
         self.blocoB.setContentsMargins(0, 150, 0, 5)
 
         self.layout.addLayout(self.blocoA)
         self.layout.addLayout(self.blocoB)
+
+    def iniciarPartida(self):
+        self.main.client.send("!tema-escolhido".encode('utf-8'))
+        
+    def timeBarSetter(self, valor, seconds):
+        self.timer.setValue(valor)
+        self.timer.setFormat(f"{str(seconds)} segundos") 
+        self.timer.setAlignment(Qt.AlignCenter)
 
 class TelaJogo(QWidget):
     def __init__(self, main):
@@ -598,7 +611,7 @@ class Tela(QWidget):
         self.receptor.printLog.connect(self.tela_jogo.printLog)
         self.receptor.definirTema.connect(self.definirTema)
         self.receptor.apAceito.connect(lambda: self.tela_conexao.status_conexao.setText('<span style=\"color: green;\">Servidor conectado</span>'))
-
+        self.receptor.atualizarTimerDefinirTema.connect(self.tela_dica_define.timeBarSetter)
 
     def definirTema(self, ap):
         if(ap == self.apelido):
