@@ -34,6 +34,7 @@ class Receptor(QObject):
     atualizarTimerConexao = pyqtSignal(int, int)
     printLog = pyqtSignal(str, str)
     definirTema = pyqtSignal(str)
+    apAceito = pyqtSignal()
     
     global encerrar
 
@@ -42,8 +43,6 @@ class Receptor(QObject):
         while encerrar == False:
             try:
                 message = self.client.recv(1024).decode('utf-8')
-                
-                #message_tuple = tuple(map(str, message.split('||')))
                 message_tuple = message.split(',')
 
                 if(message_tuple[0]=='!conectado'):  print('[servidor conectado]')
@@ -57,24 +56,20 @@ class Receptor(QObject):
                     print('[servidor desconectado - !removido]')
                     break
                 elif(message_tuple[0] == '!mudar-tela'):
-                    #self.view.switchPage(int(message_tuple[1]))
                     self.switchPage.emit(int(message_tuple[1]))
                 elif(message_tuple[0] == '!iniciar-partida'):
                     self.switchPage.emit(2)
                 elif(message_tuple[0] == '!definir-tema'):
                     self.definirTema.emit(message_tuple[1])
                 elif(message_tuple[0] == '!apelido-ja-existe'):
-                    #self.view.tela_conexao.escolherOutroApelido()
                     self.chooseAnotherNickname.emit()
                 elif(message_tuple[0] == "!Ap-conectados"):
                     aps = message_tuple[1].split('*')
                     textAps = ''
                     self.deleteAllConnectedUsers.emit()
                     for apelido in aps:
-                        #textAps= textAps+'<span style=\"color: black;\">{} </span><span style=\"color: green;\">entrou </span><br>'.format(apelido)
-                        textAps= '<span style=\"color: black;\">{} </span><span style=\"color: green;\">entrou </span>'.format(apelido)
-                        #self.view.conectadosTemplate = textAps
-                        self.updateConnectedUsers.emit(textAps)
+                        
+                        self.updateConnectedUsers.emit(apelido)
 
                 elif(message_tuple[0]=='!Ap-desconectado'):
                     ap = message_tuple[1]
@@ -87,6 +82,9 @@ class Receptor(QObject):
                     print("[receiver - print-log]\n")
                     print(message_tuple)
                     self.printLog.emit(message_tuple[1], message_tuple[2])
+                elif(message_tuple[0]=='!ap-aceito'):
+                    print('[ap-aceito]')
+                    self.apAceito.emit()
 
                 else: print("server: "+ str(message_tuple))
 
@@ -96,12 +94,6 @@ class Receptor(QObject):
                 break
         self.client.close()
         self.finished.emit()
-
-        # while encerrar == False:
-        #     time.sleep(1)
-        #     self.progress.emit()
-        #     #self.progress.emit(i)
-        # self.finished.emit()
     
     def conectar(self, client):
         self.client = client
@@ -212,11 +204,14 @@ class TelaConexao(QWidget):
         self.layout.addLayout(self.bloco3)
         self.layout.addLayout(self.bloco4)
 
-        #self.setStyleSheet("background-color: #ffffff;")
 
-    def setarApelidosConectados(self, msg):
-        #self.caixa_conexao.setText(msg)
-        self.caixa_conexao.append(msg)
+    def setarApelidosConectados(self, ap):
+        if(ap == self.main.apelido):
+            textAp= '<span style=\"color: black;\">Você </span><span style=\"color: green;\">entrou </span>'.format(ap)
+            self.caixa_conexao.append(textAp)
+        else:
+            textAp= '<span style=\"color: black;\">{} </span><span style=\"color: green;\">entrou </span>'.format(ap)
+            self.caixa_conexao.append(textAp)
     
     def adicionarApelidoDesconectado(self, msg):
         # text = self.caixa_conexao.toPlainText()
@@ -530,19 +525,13 @@ class Tela(QWidget):
         print(f"[Tentando conectar: {address}]")
         try:
             self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # self.receptor = ThreadReceptor(self)
             self.client.connect((self.host, int(self.port)))
-            #self.receptor.conectar(self.host, self.port, self.client)
-            
-            # self.receptor.start()
-            self.mountReceiver()
-            self.receiver.conectar(self.client)
+            self.montarReceptor()
+            self.receptor.conectar(self.client)
             self.thread.start()
-            self.tela_conexao.status_conexao.setText('<span style=\"color: green;\">Servidor conectado</span>')
             self.client.send(f"!definir-apelido,{self.apelido}".encode('utf-8'))
             self.tela_conexao.conectar_botao.setEnabled(False)
             self.tela_conexao.apelido_input.setEnabled(False)
-            #self.tela_conexao.apelido_input.setReadOnly(True)
             self.tela_conexao.servidor_input.setEnabled(False)
         except:
             print("[Exception]: Tela().conectar")
@@ -590,24 +579,25 @@ class Tela(QWidget):
         print("INICIANDO PARTIDA")
         self.client.send(f"!iniciar-partida".encode('utf-8'))
 
-    def mountReceiver(self):
+    def montarReceptor(self):
         self.thread = QThread() # Instanciando uma thread em paralelo à principal -> QAplication.exec
-        self.receiver = Receptor()  # Instanciando um "trabalhador" objeto para trabalhar em outra thread
-        self.receiver.moveToThread(self.thread)   # Movendo o "trabalhador" para a nova thread
+        self.receptor = Receptor()  # Instanciando um "trabalhador" objeto para trabalhar em outra thread
+        self.receptor.moveToThread(self.thread)   # Movendo o "trabalhador" para a nova thread
             # Connectado signals e slots
-        self.thread.started.connect(self.receiver.run)
-        self.receiver.finished.connect(self.thread.quit)
+        self.thread.started.connect(self.receptor.run)
+        self.receptor.finished.connect(self.thread.quit)
         #self.receiver.finished.connect(self.receiver.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
-        self.receiver.progress.connect(lambda: self.tela_conexao.setarApelidosConectados(self.conectadosTemplate))
-        self.receiver.switchPage.connect(self.switchPage)
-        self.receiver.chooseAnotherNickname.connect(self.tela_conexao.escolherOutroApelido)
-        self.receiver.updateConnectedUsers.connect(self.tela_conexao.setarApelidosConectados)
-        self.receiver.addDesconectedUsers.connect(self.tela_conexao.adicionarApelidoDesconectado)
-        self.receiver.deleteAllConnectedUsers.connect(self.tela_conexao.apagarCaixaConexao)
-        self.receiver.atualizarTimerConexao.connect(self.tela_conexao.timeBarSetter)
-        self.receiver.printLog.connect(self.tela_jogo.printLog)
-        self.receiver.definirTema.connect(self.definirTema)
+        self.receptor.progress.connect(lambda: self.tela_conexao.setarApelidosConectados(self.conectadosTemplate))
+        self.receptor.switchPage.connect(self.switchPage)
+        self.receptor.chooseAnotherNickname.connect(self.tela_conexao.escolherOutroApelido)
+        self.receptor.updateConnectedUsers.connect(self.tela_conexao.setarApelidosConectados)
+        self.receptor.addDesconectedUsers.connect(self.tela_conexao.adicionarApelidoDesconectado)
+        self.receptor.deleteAllConnectedUsers.connect(self.tela_conexao.apagarCaixaConexao)
+        self.receptor.atualizarTimerConexao.connect(self.tela_conexao.timeBarSetter)
+        self.receptor.printLog.connect(self.tela_jogo.printLog)
+        self.receptor.definirTema.connect(self.definirTema)
+        self.receptor.apAceito.connect(lambda: self.tela_conexao.status_conexao.setText('<span style=\"color: green;\">Servidor conectado</span>'))
 
 
     def definirTema(self, ap):
@@ -617,76 +607,21 @@ class Tela(QWidget):
 
 
 
-# class ThreadReceptor(threading.Thread):
-#     def __init__(self, view):
-#         super(ThreadReceptor, self).__init__()
-#         self.view = view
-#         self.kill = threading.Event()
-
-#     def run(self):
-#         global encerrar
-#         while encerrar == False:
-#             try:
-#                 message = self.client.recv(1024).decode('utf-8')
-                
-#                 #message_tuple = tuple(map(str, message.split('||')))
-#                 message_tuple = message.split(',')
-
-#                 if(message_tuple[0]=='!conectado'):  print('[servidor conectado]')
-#                 elif(message_tuple[0]=='!encerrar'):
-#                     encerrar = True
-#                     self.client.close()
-#                     break
-#                 elif(message_tuple[0]=='!removido'):
-#                     self.client.close()
-#                     break
-#                 elif(message_tuple[0] == '!mudar-tela'):
-#                     self.view.switchPage(int(message_tuple[1]))
-#                 elif(message_tuple[0] == '!iniciar'):
-#                     pass
-#                 elif(message_tuple[0] == '!iniciar-time-bar'):
-#                     self.view.tela_conexao.timeBarControl()
-#                 elif(message_tuple[0] == '!definir-tema'):
-#                     self.view.tela_jogo.definirTema()
-#                 elif(message_tuple[0] == '!apelido-ja-existe'):
-#                     print('[Apelido ja existe]')
-#                     self.view.tela_conexao.escolherOutroApelido()
-#                 elif(message_tuple[0] == "!Ap-conectados"):
-#                     aps = message_tuple[1].split('-')
-#                     textAps = ''
-#                     for apelido in aps:
-#                         textAps= textAps+'<span style=\"color: black;\">{} </span><span style=\"color: green;\">entrou </span><br>'.format(apelido)
-#                         self.view.conectadosTemplate = textAps
-#                 elif(message_tuple[0]=='!print'):    print(message_tuple[1])
-#                 elif(message_tuple[0]!=''): print("server: "+ str(message_tuple))
-
-#             except:
-#                 print("An error occured!")
-#                 self.client.close()
-#                 break
-#         self.client.close()
-
-#     def conectar(self, host, port, client):
-#         self.client = client
-
-class gameController():
+class game():
     
     def __init__(self):
         self.app = QApplication(sys.argv)
         self.view = Tela()
-        # self.receptor = ThreadReceptor(self.view)
         self.view.show()
-        # self.view.setarConectores(self.receptor)
         self.iniciar()
 
     def iniciar(self):
         global encerrar
         encerrar = False
-        #self.app.setStyle('Breeze')
         self.app.exec()
         encerrar = True
         print("Saindo...")
         self.view.desconectar()
 
 
-game = gameController()
+game = game()

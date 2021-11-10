@@ -2,38 +2,15 @@ import socket
 import threading
 import sys
 import time
-import asyncio
+
 #from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 host = '127.0.0.1'
 port = 55555
 
-
-
-
-# class iniciarTempoConexao(QObject):
-#     finished = pyqtSignal()
-#     #progress = pyqtSignal(int)
-#     progress = pyqtSignal()
-#     tempoEsgotado = pyqtSignal()
-    
-#     global encerrar
-
-#     def run(self):
-#         print('[iniciarTempoConexao!]')
-#         for i in range(30, -1, -1):
-#             time.sleep(1)
-#             print(i)
-#             self.progress.emit(i)
-#             #self.progress.emit(i)
-#         self.finished.emit() #à definir: função a ser chamada após o fim do tempo -> inicioDoJogo ou Restart
-
-
-
-
-
 class Server():
     def __init__(self, host, port):
+        self.partidaEmAndamento = False
         self.resposta = "null"
         self.host = host
         self.port = port
@@ -79,6 +56,7 @@ class Server():
             #self.apelidos.append(apelido)
             #self.apelidos[index] = apelido
             self.apelidos.insert(index, apelido)
+            client.send('!ap-aceito'.encode('utf-8'))
             self.broadcast(('!Ap-conectados,'+'*'.join(map(str, self.apelidos))).encode('utf-8'))
         except:
             print("[Except: adicionarApelido]")
@@ -109,7 +87,7 @@ class Server():
                                 self.adicionarApelido(client, message_tuple[1])
                                 print("cliente e apelido add: ", self.apelidos)
                         elif(message_tuple[0]=='!iniciar-partida'):
-                            self.iniciarPartida()
+                            self.iniciarJogo()
                         elif(message_tuple[0]=='!resposta'):
                             if(message_tuple[1] == self.resposta):
                                 pass
@@ -130,19 +108,14 @@ class Server():
             value = (i*100)/t
             self.broadcast('!atualizarTimerConexao,{},{}'.format(int(value), i).encode('utf-8'))
 
-    def iniciarPartida(self):
+    def iniciarJogo(self):
         threadTimer = threading.Thread(target=self.atualizarTimeConexao, args=())
         threadTimer.start()# Instanciando uma thread em paralelo à principal -> QAplication.
         threadTimer.join()
-        self.broadcast('!iniciar-partida'.encode('utf-8'))
+        #self.broadcast('!iniciar-partida'.encode('utf-8'))
+        self.broadcast('!definir-tema,aleon'.encode('utf-8'))
         
 
-
-
-
-
-
-    # Receiving / Listening Function
     def entrada(self):
         global estaBloqueado
         while True:
@@ -171,7 +144,7 @@ class Server():
                 self.clients.append(client)
 
                 client.send('!conectado'.encode('utf-8'))
-                time.sleep(0.015)
+                time.sleep(0.02)
 
                 threadEscuta = threading.Thread(target=self.escutar, args=(client,))
                 
