@@ -123,6 +123,9 @@ class Server():
     def iniciarJogo(self):
         threadTimer = threading.Thread(target=self.atualizarTimeConexao, args=())
         threadTimer.start()# Instanciando uma thread em paralelo à principal -> QAplication.
+
+
+        
         threadTimer.join()
         #self.broadcast('!iniciar-partida'.encode('utf-8'))
         
@@ -141,8 +144,10 @@ class Server():
 
         threadTimerDefinir = threading.Thread(target=self.atualizarTimeDefinirTema, args=())
         threadTimerDefinir.start()# Instanciando uma thread em paralelo à principal -> QAplication.
-        threadTimerDefinir.join()
-        if(self.partidaEmAndamento == False): self.iniciarPartida()
+
+        
+        # threadTimerDefinir.join()
+        # if(self.partidaEmAndamento == False): self.iniciarPartida()
         
     def atualizarTimeDefinirTema(self):
         t = 15
@@ -151,6 +156,9 @@ class Server():
             value = (i*100)/t
             self.broadcast('!atualizarTimerDefinirTema,{},{}'.format(int(value), i).encode('utf-8'))
             time.sleep(1)
+
+        #testando   
+        if(self.partidaEmAndamento == False): self.iniciarPartida()
             
     def temaEscolhido(self, tema, dica, resposta):
         self.partidaEmAndamento = True
@@ -162,11 +170,14 @@ class Server():
         self.broadcast('!iniciar-partida,{}'.format(self.ultimoMestre).encode('utf-8'))
         threadTimerDefinir = threading.Thread(target=self.atualizarTimePartida, args=())
         threadTimerDefinir.start()# Instanciando uma thread em paralelo à principal -> QAplication.
-        threadTimerDefinir.join()
-        if(self.partidaEmAndamento == True): 
-            self.partidaEmAndamento = False
-            self.encerrarPartida()
-            self.iniciarPartida()
+
+
+
+        # threadTimerDefinir.join()
+        # if(self.partidaEmAndamento == True): 
+        #     self.partidaEmAndamento = False
+        #     self.encerrarPartida()
+        #     self.iniciarPartida()
     
     def encerrarPartida(self):
         self.broadcast('!reset-tela-jogo'.encode('utf-8'))
@@ -180,6 +191,12 @@ class Server():
             value = (i*100)/t
             self.broadcast('!atualizarTimerPartida,{},{}'.format(int(value), i).encode('utf-8'))
             time.sleep(1)
+        
+        #testando
+        if(self.partidaEmAndamento == True): 
+            self.partidaEmAndamento = False
+            self.encerrarPartida()
+            self.iniciarPartida()
 
 
     def entrada(self):
