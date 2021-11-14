@@ -64,6 +64,7 @@ class Server():
             #self.apelidos[index] = apelido
             self.apelidos.insert(index, apelido)
             client.send('!ap-aceito'.encode('utf-8'))
+            time.sleep(0.05)
             self.broadcast(('!Ap-conectados,'+'*'.join(map(str, self.apelidos))).encode('utf-8'))
         except:
             print("[Except: adicionarApelido]")
@@ -101,6 +102,7 @@ class Server():
                             else:
                                 self.broadcast('!print-log,{},{}'.format(message_tuple[1], "null").encode('utf-8'))
                         elif(message_tuple[0]=='!tema-escolhido'):
+                            print('[tema-escolhido: ]', message_tuple[1])
                             self.temaEscolhido(message_tuple[1], message_tuple[2], message_tuple[3])
                         
                         elif(message_tuple[0]!=''): print("cliente: "+ str(message_tuple))
@@ -133,6 +135,7 @@ class Server():
         while(self.apelidos[index] == self.ultimoMestre):
             index = randint(0,len(self.apelidos)-1)
         
+        print('\nindex: ',index)
         self.ultimoMestre = self.apelidos[index]
         self.broadcast('!definir-tema,{}'.format(self.apelidos[index]).encode('utf-8'))
 
@@ -157,6 +160,26 @@ class Server():
         
         print(f"tema: {self.tema},{self.dica},{self.resposta}\n")
         self.broadcast('!iniciar-partida,{}'.format(self.ultimoMestre).encode('utf-8'))
+        threadTimerDefinir = threading.Thread(target=self.atualizarTimePartida, args=())
+        threadTimerDefinir.start()# Instanciando uma thread em paralelo à principal -> QAplication.
+        threadTimerDefinir.join()
+        if(self.partidaEmAndamento == True): 
+            self.partidaEmAndamento = False
+            self.encerrarPartida()
+            self.iniciarPartida()
+    
+    def encerrarPartida(self):
+        self.broadcast('!reset-tela-jogo'.encode('utf-8'))
+
+    
+
+    def atualizarTimePartida(self):
+        t = 20
+        for i in range(t, 0, -1):
+            if(self.partidaEmAndamento == False): break
+            value = (i*100)/t
+            self.broadcast('!atualizarTimerPartida,{},{}'.format(int(value), i).encode('utf-8'))
+            time.sleep(1)
 
 
     def entrada(self):
@@ -187,7 +210,7 @@ class Server():
                 self.clients.append(client)
 
                 client.send('!conectado'.encode('utf-8'))
-                time.sleep(0.02)
+                time.sleep(0.05)
 
                 threadEscuta = threading.Thread(target=self.escutar, args=(client,))
                 

@@ -37,7 +37,9 @@ class Receptor(QObject):
     definirTema = pyqtSignal(str)
     apAceito = pyqtSignal()
     atualizarTimerDefinirTema = pyqtSignal(int, int)
+    atualizarTimerPartida = pyqtSignal(int, int)
     iniciarPartida = pyqtSignal(str)
+    resetTelaJogo = pyqtSignal()
     
     global encerrar
 
@@ -63,6 +65,7 @@ class Receptor(QObject):
                 elif(message_tuple[0] == '!iniciar-partida'):
                     self.iniciarPartida.emit(message_tuple[1])
                 elif(message_tuple[0] == '!definir-tema'):
+                    print('[!definir-tema]\n')
                     self.definirTema.emit(message_tuple[1])
                 elif(message_tuple[0] == '!apelido-ja-existe'):
                     self.chooseAnotherNickname.emit()
@@ -84,6 +87,8 @@ class Receptor(QObject):
                 
                 elif(message_tuple[0]=='!atualizarTimerDefinirTema'):
                     self.atualizarTimerDefinirTema.emit(int(message_tuple[1]), int(message_tuple[2]))
+                elif(message_tuple[0]=='!atualizarTimerPartida'):
+                    self.atualizarTimerPartida.emit(int(message_tuple[1]), int(message_tuple[2]))
                 elif(message_tuple[0]=='!print-log'):
                     print("[receiver - print-log]\n")
                     print(message_tuple)
@@ -91,6 +96,8 @@ class Receptor(QObject):
                 elif(message_tuple[0]=='!ap-aceito'):
                     print('[ap-aceito]')
                     self.apAceito.emit()
+                elif(message_tuple[0]=='!reset-tela-jogo'):
+                    self.resetTelaJogo.emit()
 
                 else: print("server: "+ str(message_tuple))
 
@@ -328,8 +335,10 @@ class TelaDicaDefine(QWidget):
         tema = self.temaInput.text()
         dica = self.dicaInput.text()
         resposta = self.respostaInput.text()
-
+        print('[TelaDicaDefine.iniciarPartida() -> init]')
         self.main.client.send("!tema-escolhido,{},{},{}".format(tema, dica, resposta).encode('utf-8'))
+        print('\n[TelaDicaDefine.iniciarPartida() -> end]')
+
 
     def timeBarSetter(self, valor, seconds):
         self.timer.setValue(valor)
@@ -449,6 +458,11 @@ class TelaJogo(QWidget):
         self.tentativaRespostaInput.setText('')
         self.main.client.send("!resposta,{}".format(resposta).encode('utf-8'))
 
+    def reset(self):
+        self.tentativaRespostaInput.setText('')
+        self.caixaResposta.setText('')
+        self.tentativaRespostaInput.setEnabled(True)
+
     def printLog(self, resposta, ap):
         print("[print-log]\n")
         if(resposta == 'acertou'):
@@ -457,53 +471,11 @@ class TelaJogo(QWidget):
             else:   self.caixaResposta.append("<span style=\"color: green;\">{} acertou!</span>".format(ap))
         else:
             self.caixaResposta.append("<span style=\"color: gray;\">{}</span>".format(resposta))
-
-
-    # def definirTema(self):
-    #     dlg = QDialog()
-    #     dlg.setGeometry(20, 80, 400, 500)
-    #     dlgLayout = QVBoxLayout()
-    #     dlg.setLayout(dlgLayout)
-    #     dlg.setWindowTitle('Sua vez')
-
-    #     blocoA = QVBoxLayout()
-    #     blocoA.addWidget(QLabel('Tema'))
-    #     temaInput = QLineEdit()
-    #     blocoA.addWidget(temaInput)
-    #     blocoA.addWidget(QLabel('Dica'))
-    #     dicaInput = QLineEdit()
-    #     blocoA.addWidget(dicaInput)
-    #     blocoA.addWidget(QLabel('Resposta'))
-    #     respostaInput = QLineEdit()
-    #     respostaInput.setStyleSheet("QLineEdit"
-    #                                 "{"
-    #                                 "margin-bottom: 80px;"
-    #                                 "}")
-    #     blocoA.addWidget(respostaInput)
-
-    #     blocoB = QVBoxLayout()
-    #     iniciarRodadaBtn = QPushButton('Iniciar Rodada')
-    #     blocoB.addWidget(iniciarRodadaBtn)
-    #     timer = QProgressBar()
-    #     timer.setValue(100)
-    #     timer.setStyleSheet("QProgressBar"
-    #                                 "{"
-    #                                     "color: #ffffff;"
-    #                                     "text-align: center;"
-    #                                     "background-color: #b2b2b6;"
-    #                                     #"heigth: 40px;"
-    #                                 "}"
-    #                                 "QProgressBar::chunk"
-    #                                 "{"
-    #                                     "background-color: #1320d3"
-    #                                 "}"
-    #                                 )
-    #     blocoB.addWidget(timer)
-
-    #     dlgLayout.addLayout(blocoA)
-    #     dlgLayout.addLayout(blocoB)
-
-    #     dlg.exec_()
+    
+    def timeBarSetter(self, valor, seconds):
+        self.tempo.setValue(valor)
+        self.tempo.setFormat(f"{str(seconds)} segundos") 
+        self.tempo.setAlignment(Qt.AlignCenter)
 
 class Tela(QWidget):
     def __init__(self):
@@ -619,6 +591,8 @@ class Tela(QWidget):
         self.receptor.apAceito.connect(lambda: self.tela_conexao.status_conexao.setText('<span style=\"color: green;\">Servidor conectado</span>'))
         self.receptor.atualizarTimerDefinirTema.connect(self.tela_dica_define.timeBarSetter)
         self.receptor.iniciarPartida.connect(self.iniciarPartida)
+        self.receptor.atualizarTimerPartida.connect(self.tela_jogo.timeBarSetter)
+        self.receptor.resetTelaJogo.connect(self.tela_jogo.reset)
 
     def definirTema(self, ap):
         if(ap == self.apelido):
