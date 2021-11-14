@@ -18,6 +18,7 @@ class Server():
         self.dica = "null"
         self.tema = "null"
         self.ultimoMestre = "null"
+        self.mestreDefine =  'null'
         self.countPartidas = 0
         self.host = host
         self.port = port
@@ -104,6 +105,8 @@ class Server():
                         elif(message_tuple[0]=='!tema-escolhido'):
                             print('[tema-escolhido: ]', message_tuple[1])
                             self.temaEscolhido(message_tuple[1], message_tuple[2], message_tuple[3])
+                            index = self.clients.index(client)
+                            self.ultimoMestre = self.apelidos[index]
                         
                         elif(message_tuple[0]!=''): print("cliente: "+ str(message_tuple))
 
@@ -135,11 +138,12 @@ class Server():
         self.partidaEmAndamento = False
 
         index = randint(0,len(self.apelidos)-1)
-        while(self.apelidos[index] == self.ultimoMestre):
+        while(self.apelidos[index] == self.ultimoMestre or self.apelidos[index] == self.mestreDefine):
             index = randint(0,len(self.apelidos)-1)
         
         print('\nindex: ',index)
-        self.ultimoMestre = self.apelidos[index]
+        #self.ultimoMestre = self.apelidos[index]
+        self.mestreDefine = self.apelidos[index]
         self.broadcast('!definir-tema,{}'.format(self.apelidos[index]).encode('utf-8'))
 
         threadTimerDefinir = threading.Thread(target=self.atualizarTimeDefinirTema, args=())
@@ -165,6 +169,7 @@ class Server():
         self.tema = tema
         self.dica = dica
         self.resposta = resposta
+        self.ultimoMestre = self.mestreDefine
         
         print(f"tema: {self.tema},{self.dica},{self.resposta}\n")
         self.broadcast('!iniciar-partida,{}'.format(self.ultimoMestre).encode('utf-8'))
