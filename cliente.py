@@ -40,6 +40,7 @@ class Receptor(QObject):
     atualizarTimerPartida = pyqtSignal(int, int)
     iniciarPartida = pyqtSignal(str)
     resetTelaJogo = pyqtSignal()
+    setarTema = pyqtSignal(str, str, str)
     
     global encerrar
 
@@ -89,6 +90,8 @@ class Receptor(QObject):
                     self.atualizarTimerDefinirTema.emit(int(message_tuple[1]), int(message_tuple[2]))
                 elif(message_tuple[0]=='!atualizarTimerPartida'):
                     self.atualizarTimerPartida.emit(int(message_tuple[1]), int(message_tuple[2]))
+                elif(message_tuple[0]=='!setar-tema'):
+                    self.setarTema.emit(message_tuple[1], message_tuple[2], message_tuple[3])
                 elif(message_tuple[0]=='!print-log'):
                     print("[receiver - print-log]\n")
                     print(message_tuple)
@@ -369,6 +372,15 @@ class TelaJogo(QWidget):
         self.dicaLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.pistaCaixa = QTextEdit()
         self.pistaCaixa.setReadOnly(True)
+        # self.pistaCaixa.setStyleSheet("QLabel"
+        #                                 "{"
+        #                                     "font-size: 40px;"
+                                            
+        #                                 "}")
+        font = QFont()
+        font.setPointSize(15)
+        self.pistaCaixa.setFont(font)
+
         self.bloco2.addWidget(self.dicaLabel)
         self.bloco2.addWidget(self.pistaCaixa)
 
@@ -462,6 +474,16 @@ class TelaJogo(QWidget):
         self.tentativaRespostaInput.setText('')
         self.caixaResposta.setText('')
         self.tentativaRespostaInput.setEnabled(True)
+
+    def setarTema(self, tema, dica, resposta):
+        self.pistaCaixa.setText('')
+        self.pistaCaixa.append("<span style=\"color: gray;\">Tema: {}</span>".format(tema))
+        self.pistaCaixa.append("<span style=\"color: gray;\">Pista: {}</span>".format(dica))
+        self.pistaCaixa.append(' ')
+
+        self.pistaCaixa.append("<span style=\"color: gray;\">{}</span>".format(resposta))
+        self.pistaCaixa.setAlignment(QtCore.Qt.AlignCenter)
+        self.dicaLabel.setText("Texto com {} letras".format(len(resposta)))
 
     def printLog(self, resposta, ap):
         print("[print-log]\n")
@@ -593,6 +615,7 @@ class Tela(QWidget):
         self.receptor.iniciarPartida.connect(self.iniciarPartida)
         self.receptor.atualizarTimerPartida.connect(self.tela_jogo.timeBarSetter)
         self.receptor.resetTelaJogo.connect(self.tela_jogo.reset)
+        self.receptor.setarTema.connect(self.tela_jogo.setarTema)
 
     def definirTema(self, ap):
         if(ap == self.apelido):

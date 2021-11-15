@@ -26,6 +26,8 @@ class Server():
         self.apelidos = []
         self.estaBloqueado = False
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.flags = []
+        self.respostaEncriptada = ''
 
         self.iniciar()
 
@@ -147,11 +149,36 @@ class Server():
         self.broadcast('!definir-tema,{}'.format(self.apelidos[index]).encode('utf-8'))
 
         threadTimerDefinir = threading.Thread(target=self.atualizarTimeDefinirTema, args=())
-        threadTimerDefinir.start()# Instanciando uma thread em paralelo à principal -> QAplication.
+        threadTimerDefinir.start()# Instanciando uma thread em paralelo à principal -> QAplication
 
         
         # threadTimerDefinir.join()
         # if(self.partidaEmAndamento == False): self.iniciarPartida()
+    
+    def revelarLetra(self):
+        p = randint(0, len(self.resposta)-1)
+        while self.flags[p] == True:
+            p = randint(0, len(self.resposta)-1)
+        self.flags[p] = True
+
+        print('[revelarLetra]')
+        print(self.flags)
+    
+    def criarFlags(self):
+        for i in range(0, len(self.resposta)):
+            self.flags.append(False)
+        
+        print('[criarFlags]')
+        print(self.flags)
+
+    def encriptar(self):
+        palavraEncriptada = ''
+        for i in range(0, len(self.resposta)):
+            if(self.flags[i] == True):
+                palavraEncriptada = palavraEncriptada + self.resposta[i]+' '
+            else:
+                palavraEncriptada = palavraEncriptada + '_ '
+        return palavraEncriptada
         
     def atualizarTimeDefinirTema(self):
         t = 15
@@ -177,7 +204,6 @@ class Server():
         threadTimerDefinir.start()# Instanciando uma thread em paralelo à principal -> QAplication.
 
 
-
         # threadTimerDefinir.join()
         # if(self.partidaEmAndamento == True): 
         #     self.partidaEmAndamento = False
@@ -190,12 +216,21 @@ class Server():
     
 
     def atualizarTimePartida(self):
+        self.flags = []
+        self.criarFlags()
         t = 20
+        self.broadcast('!setar-tema,{},{},{}'.format(self.tema, self.dica, self.encriptar()).encode('utf-8'))
+        time.sleep(0.1)
         for i in range(t, 0, -1):
             if(self.partidaEmAndamento == False): break
             value = (i*100)/t
             self.broadcast('!atualizarTimerPartida,{},{}'.format(int(value), i).encode('utf-8'))
             time.sleep(1)
+            if(i%5 == 0):
+                self.revelarLetra()
+                self.broadcast('!setar-tema,{},{},{}'.format(self.tema, self.dica, self.encriptar()).encode('utf-8'))
+
+        time.sleep(0.5)
         
         #testando
         if(self.partidaEmAndamento == True): 
