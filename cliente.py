@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QTextEdit,
     QProgressBar,
+    QPlainTextEdit
 )
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
@@ -41,6 +42,9 @@ class Receptor(QObject):
     iniciarPartida = pyqtSignal(str)
     resetTelaJogo = pyqtSignal()
     setarTema = pyqtSignal(str, str, str)
+    acertou = pyqtSignal(str)
+    atualizarPontos = pyqtSignal(str, int)
+    apagarCaixaJogadores = pyqtSignal()
     
     global encerrar
 
@@ -75,8 +79,17 @@ class Receptor(QObject):
                     textAps = ''
                     self.deleteAllConnectedUsers.emit()
                     for apelido in aps:
-                        
                         self.updateConnectedUsers.emit(apelido)
+
+                elif(message_tuple[0]=='!pontos'):
+                    aps = message_tuple[1].split('*')
+                    pontos = message_tuple[2].split('*')
+                    i = 0
+                    self.apagarCaixaJogadores.emit()
+                    for apelido in aps:
+                        self.atualizarPontos.emit(apelido, int(pontos[i]))
+                        i=i+1
+
 
                 elif(message_tuple[0]=='!Ap-desconectado'):
                     ap = message_tuple[1]
@@ -101,6 +114,8 @@ class Receptor(QObject):
                     self.apAceito.emit()
                 elif(message_tuple[0]=='!reset-tela-jogo'):
                     self.resetTelaJogo.emit()
+                # elif(message_tuple[0]=='!acertou'):
+                #     self.acertou.emit(message_tuple[1])
 
                 else: print("server: "+ str(message_tuple))
 
@@ -363,7 +378,7 @@ class TelaJogo(QWidget):
         self.LabelJogadores = QLabel('Jogadores')
         self.LabelJogadores.setAlignment(QtCore.Qt.AlignCenter)
         self.bloco1.addWidget(self.LabelJogadores)
-        self.caixaJogadores = QTextEdit()
+        self.caixaJogadores = QPlainTextEdit()
         self.caixaJogadores.setReadOnly(True)
         self.bloco1.addWidget(self.caixaJogadores)
 
@@ -490,6 +505,7 @@ class TelaJogo(QWidget):
         if(resposta == 'acertou'):
             if(ap == self.main.apelido == ap):
                 self.caixaResposta.append("<span style=\"color: green;\">Você acertou!</span>")
+                self.tentativaRespostaInput.setEnabled(False)
             else:   self.caixaResposta.append("<span style=\"color: green;\">{} acertou!</span>".format(ap))
         else:
             self.caixaResposta.append("<span style=\"color: gray;\">{}</span>".format(resposta))
@@ -498,6 +514,29 @@ class TelaJogo(QWidget):
         self.tempo.setValue(valor)
         self.tempo.setFormat(f"{str(seconds)} segundos") 
         self.tempo.setAlignment(Qt.AlignCenter)
+
+    def atualizarPontos(self, ap, ponto):
+        
+        if(ap == self.main.apelido):
+            t = 10-4
+            space = ''
+            for i in range(1, t):
+                space = space+''
+            textAp= '<span style=\"color: gray;\">você</span><span style=\"color: gray;\">{}: {} pontos </span>'.format(space, ponto)
+            
+            self.caixaJogadores.appendHtml(textAp)
+        else:
+            t = 10-len(ap)
+            space = ''
+            for i in range(1, t):
+                space = space+''
+            textAp= '<span style=\"color: gray;\">{}</span><span style=\"color: gray;\">{}: {} pontos </span>'.format(ap, space, ponto)
+            self.caixaJogadores.appendHtml(textAp)
+
+    
+    def apagarCaixaJogadores(self):
+        #self.caixaJogadores.setText('')
+        self.caixaJogadores.clear()
 
 class Tela(QWidget):
     def __init__(self):
@@ -609,6 +648,7 @@ class Tela(QWidget):
         self.receptor.deleteAllConnectedUsers.connect(self.tela_conexao.apagarCaixaConexao)
         self.receptor.atualizarTimerConexao.connect(self.tela_conexao.timeBarSetter)
         self.receptor.printLog.connect(self.tela_jogo.printLog)
+        # self.receptor.acertou.connect(self.tela_jogo.acertou)
         self.receptor.definirTema.connect(self.definirTema)
         self.receptor.apAceito.connect(lambda: self.tela_conexao.status_conexao.setText('<span style=\"color: green;\">Servidor conectado</span>'))
         self.receptor.atualizarTimerDefinirTema.connect(self.tela_dica_define.timeBarSetter)
@@ -616,6 +656,8 @@ class Tela(QWidget):
         self.receptor.atualizarTimerPartida.connect(self.tela_jogo.timeBarSetter)
         self.receptor.resetTelaJogo.connect(self.tela_jogo.reset)
         self.receptor.setarTema.connect(self.tela_jogo.setarTema)
+        self.receptor.atualizarPontos.connect(self.tela_jogo.atualizarPontos)
+        self.receptor.apagarCaixaJogadores.connect(self.tela_jogo.apagarCaixaJogadores)
 
     def definirTema(self, ap):
         if(ap == self.apelido):

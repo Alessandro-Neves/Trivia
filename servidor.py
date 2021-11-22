@@ -13,6 +13,9 @@ port = 55555
 
 class Server():
     def __init__(self, host, port):
+        self.tempoRodada = 0
+        self.pontoPorAcerto = 1
+        self.maxTempoRodada = 50
         self.partidaEmAndamento = False
         self.resposta = "null"
         self.dica = "null"
@@ -24,6 +27,7 @@ class Server():
         self.port = port
         self.clients = []
         self.apelidos = []
+        self.pontos = []
         self.estaBloqueado = False
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.flags = []
@@ -53,7 +57,8 @@ class Server():
         try:
             if(self.apelidos[index]):
                 ap = self.apelidos[index]
-                self.apelidos.remove(self.apelidos[index])
+                self.pontos.pop(index)
+                self.apelidos.remove(ap)
                 self.broadcast(('!Ap-conectados,'+'*'.join(map(str, self.apelidos))).encode('utf-8'))
                 time.sleep(0.05)
                 self.broadcast(('!Ap-desconectado,{}'.format(ap)).encode('utf-8'))
@@ -69,6 +74,7 @@ class Server():
             client.send('!ap-aceito'.encode('utf-8'))
             time.sleep(0.05)
             self.broadcast(('!Ap-conectados,'+'*'.join(map(str, self.apelidos))).encode('utf-8'))
+            self.pontos.insert(index, 0)
         except:
             print("[Except: adicionarApelido]")
 
@@ -101,7 +107,20 @@ class Server():
                             self.iniciarJogo()
                         elif(message_tuple[0]=='!resposta'):
                             if(message_tuple[1] == self.resposta):
-                                pass
+                                index = self.clients.index(client)
+                                self.broadcast('!print-log,acertou,{}'.format(self.apelidos[index]).encode('utf-8'))
+                                #(self.pontos[index] + self.pontoPorAcerto*self.tempoRodada)
+                                #self.pontos.insert(index, (self.pontos[index] + 10))
+                                self.pontos[index] = (self.pontos[index] + self.pontoPorAcerto*self.tempoRodada)
+                                indexMestre = self.apelidos.index(self.ultimoMestre)
+                                #(self.tempoRodada*self.pontoPorAcerto)
+                                #self.pontos.insert(indexMestre, (self.pontos[indexMestre] + 5))
+                                self.pontos[indexMestre] = (self.pontos[indexMestre] + int(self.pontoPorAcerto*self.maxTempoRodada*(1/(len(self.apelidos)-1))))
+                                print(indexMestre, '<---')
+                                print(self.ultimoMestre, self.apelidos.index(self.ultimoMestre), self.apelidos[index])
+                                print(self.pontos)
+                                time.sleep(0.5)
+                                self.atualizarPontos()
                             else:
                                 self.broadcast('!print-log,{},{}'.format(message_tuple[1], "null").encode('utf-8'))
                         elif(message_tuple[0]=='!tema-escolhido'):
@@ -136,33 +155,38 @@ class Server():
         
         self.iniciarPartida()
 
+    def atualizarPontos(self):
+        self.broadcast(('!pontos,'+'*'.join(map(str, self.apelidos))+','+'*'.join(map(str, self.pontos))).encode('utf-8'))
+        #print('!pontos,'+'*'.join(map(str, self.apelidos))+','+'*'.join(map(str, self.pontos)))
+
     def iniciarPartida(self):
         self.partidaEmAndamento = False
-
-        index = randint(0,len(self.apelidos)-1)
-        while(self.apelidos[index] == self.ultimoMestre or self.apelidos[index] == self.mestreDefine):
+        if(len(self.apelidos)>0):
             index = randint(0,len(self.apelidos)-1)
-        
-        print('\nindex: ',index)
-        #self.ultimoMestre = self.apelidos[index]
-        self.mestreDefine = self.apelidos[index]
-        self.broadcast('!definir-tema,{}'.format(self.apelidos[index]).encode('utf-8'))
+            while(self.apelidos[index] == self.ultimoMestre or self.apelidos[index] == self.mestreDefine):
+                index = randint(0,len(self.apelidos)-1)
+            
+            print('\nindex: ',index)
+            #self.ultimoMestre = self.apelidos[index]
+            self.mestreDefine = self.apelidos[index]
+            self.broadcast('!definir-tema,{}'.format(self.apelidos[index]).encode('utf-8'))
 
-        threadTimerDefinir = threading.Thread(target=self.atualizarTimeDefinirTema, args=())
-        threadTimerDefinir.start()# Instanciando uma thread em paralelo à principal -> QAplication
+            threadTimerDefinir = threading.Thread(target=self.atualizarTimeDefinirTema, args=())
+            threadTimerDefinir.start()# Instanciando uma thread em paralelo à principal -> QAplication
 
-        
-        # threadTimerDefinir.join()
-        # if(self.partidaEmAndamento == False): self.iniciarPartida()
+            
+            # threadTimerDefinir.join()
+            # if(self.partidaEmAndamento == False): self.iniciarPartida()
     
     def revelarLetra(self):
-        p = randint(0, len(self.resposta)-1)
-        while self.flags[p] == True:
+        if(len(self.resposta)>1):
             p = randint(0, len(self.resposta)-1)
-        self.flags[p] = True
+            while self.flags[p] == True:
+                p = randint(0, len(self.resposta)-1)
+            self.flags[p] = True
 
-        print('[revelarLetra]')
-        print(self.flags)
+            print('[revelarLetra]')
+            print(self.flags)
     
     def criarFlags(self):
         for i in range(0, len(self.resposta)):
@@ -216,19 +240,25 @@ class Server():
     
 
     def atualizarTimePartida(self):
+        self.atualizarPontos()
+        contador = 0
+        limite = int(len(self.resposta)*0.5)
         self.flags = []
         self.criarFlags()
-        t = 20
+        t = self.maxTempoRodada
         self.broadcast('!setar-tema,{},{},{}'.format(self.tema, self.dica, self.encriptar()).encode('utf-8'))
         time.sleep(0.1)
         for i in range(t, 0, -1):
+            self.tempoRodada = i
             if(self.partidaEmAndamento == False): break
             value = (i*100)/t
             self.broadcast('!atualizarTimerPartida,{},{}'.format(int(value), i).encode('utf-8'))
-            time.sleep(1)
-            if(i%5 == 0):
+            time.sleep(0.5)
+            if(i%5 == 0 and contador < limite):
                 self.revelarLetra()
                 self.broadcast('!setar-tema,{},{},{}'.format(self.tema, self.dica, self.encriptar()).encode('utf-8'))
+                contador+=1
+            time.sleep(0.5)
 
         time.sleep(0.5)
         
@@ -236,6 +266,7 @@ class Server():
         if(self.partidaEmAndamento == True): 
             self.partidaEmAndamento = False
             self.encerrarPartida()
+            time.sleep(0.5)
             self.iniciarPartida()
 
 
