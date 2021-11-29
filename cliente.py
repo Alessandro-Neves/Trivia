@@ -29,6 +29,7 @@ class Receptor(QObject):
     #progress = pyqtSignal(int)
     progress = pyqtSignal()
     switchPage = pyqtSignal(int)
+    setarCampeao = pyqtSignal(str)
     chooseAnotherNickname = pyqtSignal()
     updateConnectedUsers = pyqtSignal(str)
     addDesconectedUsers = pyqtSignal(str)
@@ -45,6 +46,8 @@ class Receptor(QObject):
     acertou = pyqtSignal(str)
     atualizarPontos = pyqtSignal(str, int)
     apagarCaixaJogadores = pyqtSignal()
+    resetCon = pyqtSignal()
+    
     
     global encerrar
 
@@ -61,6 +64,8 @@ class Receptor(QObject):
                     self.client.close()
                     print('[servidor desconectado]')
                     break
+                elif(message_tuple[0]=='!reset-con'):
+                    self.resetCon.emit()
                 elif(message_tuple[0]=='!removido'):
                     self.client.close()
                     print('[servidor desconectado - !removido]')
@@ -116,6 +121,8 @@ class Receptor(QObject):
                     self.resetTelaJogo.emit()
                 # elif(message_tuple[0]=='!acertou'):
                 #     self.acertou.emit(message_tuple[1])
+                elif(message_tuple[0]=='!winner'):
+                    self.setarCampeao.emit(str(message_tuple[1]))
 
                 else: print("server: "+ str(message_tuple))
 
@@ -264,6 +271,12 @@ class TelaConexao(QWidget):
 
     def apagarCaixaConexao(self):
         self.caixa_conexao.setText('')
+    
+    def resetCon(self):
+        self.btn_iniciar.setEnabled(True)
+        print('resetCon')
+        self.time_bar.setValue(100)
+        self.time_bar.setFormat(' ')
 
 
 class TelaDicaEspera(QWidget):
@@ -538,6 +551,38 @@ class TelaJogo(QWidget):
         #self.caixaJogadores.setText('')
         self.caixaJogadores.clear()
 
+
+class TelaPodio(QWidget):
+    def __init__(self, main):
+        super().__init__()
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        self.main = main
+        self.bloco1 = QVBoxLayout()
+        self.label = QLabel('Partida em andamento!')
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.bloco1.setAlignment(Qt.AlignCenter) 
+        #self.start_button.clicked.connect(self.main.iniciar)
+        self.bloco1.addWidget(self.label)
+        self.layout.addLayout(self.bloco1)
+
+        #estilos
+        self.label.setStyleSheet("QLabel"
+                                        "{"
+                                            "background-color: orange;"
+                                            "color: #ffffff;"
+                                            "min-height: 80px;"
+                                            "min-width: 300px;"
+                                            "border-radius: 20px;"
+                                            "font-size: 30px;"
+                                            "text-align: center;"
+                                            
+                                        "}")
+    def setarCamp(self, ap: str):
+        ap = ap.capitalize()
+        self.label.setText('{} ganhou!'.format(ap))
+        pass
+
 class Tela(QWidget):
     def __init__(self):
         super().__init__()
@@ -549,7 +594,7 @@ class Tela(QWidget):
         self.tela_conexao_index = 1
         self.tela_jogo_index = 2
         self.tela_mestre_index = 3
-        self.tela_podio = 4
+        self.tela_podio_index = 4
         #enqudramento janela
         self.left = 20
         self.top = 80
@@ -601,12 +646,14 @@ class Tela(QWidget):
         self.tela_jogo = TelaJogo(self)
         self.tela_dica_define = TelaDicaDefine(self)
         self.tela_dica_espera = TelaDicaEspera(self)
+        self.tela_podio = TelaPodio(self)
 
         self.stackedLayout.addWidget(self.tela_inicial)
         self.stackedLayout.addWidget(self.tela_conexao)
         self.stackedLayout.addWidget(self.tela_jogo)
         self.stackedLayout.addWidget(self.tela_dica_define)
         self.stackedLayout.addWidget(self.tela_dica_espera)
+        self.stackedLayout.addWidget(self.tela_podio)
         
     def iniciar(self):
         #startar controlador geral
@@ -649,6 +696,7 @@ class Tela(QWidget):
         self.receptor.atualizarTimerConexao.connect(self.tela_conexao.timeBarSetter)
         self.receptor.printLog.connect(self.tela_jogo.printLog)
         # self.receptor.acertou.connect(self.tela_jogo.acertou)
+        self.receptor.setarCampeao.connect(self.tela_podio.setarCamp)
         self.receptor.definirTema.connect(self.definirTema)
         self.receptor.apAceito.connect(lambda: self.tela_conexao.status_conexao.setText('<span style=\"color: green;\">Servidor conectado</span>'))
         self.receptor.atualizarTimerDefinirTema.connect(self.tela_dica_define.timeBarSetter)
@@ -658,6 +706,8 @@ class Tela(QWidget):
         self.receptor.setarTema.connect(self.tela_jogo.setarTema)
         self.receptor.atualizarPontos.connect(self.tela_jogo.atualizarPontos)
         self.receptor.apagarCaixaJogadores.connect(self.tela_jogo.apagarCaixaJogadores)
+        self.receptor.resetCon.connect(self.tela_conexao.resetCon)
+        
 
     def definirTema(self, ap):
         if(ap == self.apelido):

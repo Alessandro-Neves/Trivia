@@ -13,6 +13,8 @@ port = 55555
 
 class Server():
     def __init__(self, host, port):
+        self.maxRodadas = 2
+        self.contadorRodadas = 0
         self.tempoRodada = 0
         self.pontoPorAcerto = 1
         self.maxTempoRodada = 50
@@ -32,6 +34,7 @@ class Server():
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.flags = []
         self.respostaEncriptada = ''
+        self.acertos = 0
 
         self.iniciar()
 
@@ -120,6 +123,7 @@ class Server():
                                 print(self.ultimoMestre, self.apelidos.index(self.ultimoMestre), self.apelidos[index])
                                 print(self.pontos)
                                 time.sleep(0.5)
+                                self.acertos+=1
                                 self.atualizarPontos()
                             else:
                                 self.broadcast('!print-log,{},{}'.format(message_tuple[1], "null").encode('utf-8'))
@@ -145,6 +149,7 @@ class Server():
             
 
     def iniciarJogo(self):
+        self.contadorRodadas = 0
         threadTimer = threading.Thread(target=self.atualizarTimeConexao, args=())
         threadTimer.start()# Instanciando uma thread em paralelo à principal -> QAplication.
 
@@ -160,6 +165,7 @@ class Server():
         #print('!pontos,'+'*'.join(map(str, self.apelidos))+','+'*'.join(map(str, self.pontos)))
 
     def iniciarPartida(self):
+        self.acertos = 0
         self.partidaEmAndamento = False
         if(len(self.apelidos)>0):
             index = randint(0,len(self.apelidos)-1)
@@ -241,6 +247,7 @@ class Server():
 
     def atualizarTimePartida(self):
         self.atualizarPontos()
+        self.contadorRodadas+=1
         contador = 0
         limite = int(len(self.resposta)*0.5)
         self.flags = []
@@ -250,7 +257,7 @@ class Server():
         time.sleep(0.1)
         for i in range(t, 0, -1):
             self.tempoRodada = i
-            if(self.partidaEmAndamento == False): break
+            if(self.partidaEmAndamento == False or self.acertos == len(self.apelidos)-1): break
             value = (i*100)/t
             self.broadcast('!atualizarTimerPartida,{},{}'.format(int(value), i).encode('utf-8'))
             time.sleep(0.5)
@@ -266,8 +273,37 @@ class Server():
         if(self.partidaEmAndamento == True): 
             self.partidaEmAndamento = False
             self.encerrarPartida()
-            time.sleep(0.5)
-            self.iniciarPartida()
+            if(self.contadorRodadas < self.maxRodadas):
+                time.sleep(0.5)
+                self.iniciarPartida()
+            else:
+                time.sleep(1)   
+                self.encerrarGame()
+        if(self.contadorRodadas == self.maxRodadas):
+            time.sleep(1)
+            self.encerrarGame
+
+    def encerrarGame(self):
+        maior = -1
+        cont = 0
+        index = 0
+        for ponto in self.pontos:
+            if(ponto > maior):
+                maior = ponto
+                index = cont
+            cont+=1
+
+        print('[encerrar game]: {}'.format(self.apelidos[index]))
+        self.broadcast('!winner,{}'.format(self.apelidos[index]).encode('utf-8'))
+        time.sleep(0.5)
+        self.broadcast('!mudar-tela,5'.encode('utf-8'))
+        time.sleep(9)
+        self.broadcast('!reset-con'.encode('utf-8'))
+        time.sleep(1)
+        for client in self.clients:
+            index = self.clients.index(client)
+            self.pontos[index] = 0
+        self.broadcast('!mudar-tela,1'.encode('utf-8'))
 
 
     def entrada(self):
